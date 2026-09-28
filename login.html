@@ -18,16 +18,17 @@
             <p>Ingresa a tu cuenta de GymFlow.</p>
             <form>
                 <label for="correo">Correo electrónico</label>
-                <input type="email" id="correo" name="correo">
+                <input type="email" id="correo" name="correo" autocomplete="email" required>
 
                 <label for="password">Contraseña</label>
-                <input type="password" id="password" name="password">
+                <input type="password" id="password" name="password" autocomplete="current-password" minlength="8" required>
 
                 <button type="submit">Iniciar sesión</button>
             </form>
             <p>¿No tienes una cuenta? <a href="registro.html">Regístrate</a></p>
         </div>
     </main>
+    <script src="web.js" defer></script>
 </body>
 
 </html>
