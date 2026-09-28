@@ -10,36 +10,19 @@ document.addEventListener("DOMContentLoaded", () => {
 function setupScrollAnimations() {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
-    const groups = [
-        { selector: "#inicio > div:last-child, #inicio h1, #inicio p, #inicio a", stagger: false },
-        { selector: "#planes h2, #entrenadores h2, #rutinas h2, #productos h2, #contacto h2", stagger: false },
-        { selector: "#planes > p, #entrenadores > p, #rutinas > p, #productos > p, #contacto > p:not(.dato-contacto)", stagger: false },
-        { selector: "#planes article, #entrenadores article, #rutinas article, #productos article", stagger: true },
-        { selector: "#contacto .dato-contacto", stagger: true }
-    ];
-    const elements = new Set();
+    const elements = document.querySelectorAll(
+        "#inicio h1, #planes article, #entrenadores article, #rutinas article, #productos article"
+    );
+    if (!("IntersectionObserver" in window)) return;
 
-    groups.forEach(({ selector, stagger }) => {
-        document.querySelectorAll(selector).forEach((element, index) => {
-            if (elements.has(element)) return;
-            elements.add(element);
-            element.classList.add("animar-entrada");
-            if (stagger) element.style.setProperty("--retraso-entrada", `${(index % 4) * 90}ms`);
-        });
-    });
-
-    if (!("IntersectionObserver" in window)) {
-        elements.forEach((element) => element.classList.add("entrada-visible"));
-        return;
-    }
-
-    const observer = new IntersectionObserver((entries, currentObserver) => {
+    elements.forEach((element) => element.classList.add("animar-entrada"));
+    const observer = new IntersectionObserver((entries) => {
         entries.forEach((entry) => {
             if (!entry.isIntersecting) return;
             entry.target.classList.add("entrada-visible");
-            currentObserver.unobserve(entry.target);
+            observer.unobserve(entry.target);
         });
-    }, { threshold: 0.12, rootMargin: "0px 0px -36px 0px" });
+    });
 
     elements.forEach((element) => observer.observe(element));
 }
