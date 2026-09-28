@@ -16,76 +16,97 @@ a {
 button, input {
     font: inherit;
 }
-/* Navegación */
+
+/* HEADER */
 header {
     position: sticky; top: 0; z-index: 20; display: flex;
     align-items: center; justify-content: space-between; gap: 24px; padding: 12px 50px;
     border-bottom: 1px solid #29292d; background: #101012;
 }
+
 header > div {
     flex: 0 0 auto;
 }
+
 header img {
     width: 112px; height: 54px; object-fit: contain;
 }
+
 header nav {
     display: flex; align-items: center; gap: 24px;
 }
+
 header nav a {
     color: #d8d5d4; font-size: 15px; font-weight: bold; transition: color .2s;
 }
+
 header nav a:hover {
     color: #ff343b;
 }
+
 header nav a:last-child {
     padding: 9px 15px; border: 1px solid #ed1c24; border-radius: 20px; color: #fff;
 }
+
 header nav a:last-child:hover {
     background: #ed1c24;
 }
-/* Portada */
+
+/* MAIN */
 #inicio {
     display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: 55px;
     min-height: 580px; padding: 70px 8%; background: #111113;
 }
+
 #inicio > div:first-child {
     max-width: 590px;
 }
+
 #inicio h1 {
     margin-bottom: 20px; font-size: 54px; line-height: 1.08;
 }
+
 #inicio p {
     max-width: 520px; margin-bottom: 28px; color: #c0bdbd; font-size: 18px;
 }
+
 #inicio a, .formulario button {
     display: inline-block; padding: 13px 24px; border: 0; border-radius: 7px;
     background: #ed1c24; color: #fff; font-weight: bold; cursor: pointer;
     transition: background .2s, transform .2s;
 }
+
 #inicio a:hover, .formulario button:hover {
     transform: translateY(-2px); background: #ff343b;
 }
+
 #inicio img {
     width: 100%; height: 420px; border: 1px solid #36363a; border-radius: 14px;
     object-fit: cover;
 }
-/* Secciones principales */
+
+/* PLANES */
 #planes, #entrenadores, #productos, #rutinas {
     padding: 75px 6%; text-align: center;
 }
+
 #planes, #productos, #rutinas {
     background: #111113;
 }
+
 #planes h2, #entrenadores h2, #productos h2, #rutinas h2, #contacto h2 {
     margin-bottom: 10px; font-size: 38px; line-height: 1.2;
 }
+
 #planes > p, #entrenadores > p, #productos > p, #rutinas > p {
     max-width: 650px; margin: 0 auto 34px; color: #aaa7a7; font-size: 17px;
 }
+
 #planes > div, #productos > div {
     display: grid; grid-template-columns: repeat(3, 1fr); align-items: stretch; gap: 22px;
     max-width: 1200px; margin: 0 auto;
 }
+
 #planes article, #entrenadores article, #productos article, #rutinas article {
     border: 1px solid #303034; border-radius: 14px; background: #18181b; box-shadow: 0 8px 20px #0005;
     transition: transform .2s, border-color .2s, box-shadow .2s;
@@ -102,7 +123,6 @@ header nav a:last-child:hover {
 #planes article > p, #entrenadores article p, #productos article p {
     margin-bottom: 12px; color: #aaa7a7; line-height: 1.55;
 }
-/* Precios y planes */
 #planes article ul {
     margin: 20px 0; list-style: none;
 }
@@ -126,6 +146,7 @@ header nav a:last-child:hover {
 #planes article .precio .valor-precio:last-child {
     margin-bottom: 0;
 }
+
 .plan-accion {
     display: block; margin-top: 15px; padding: 10px 14px; border: 1px solid #ed1c24;
     border-radius: 7px; background: #ed1c24; color: #fff; font-weight: bold;
@@ -134,11 +155,13 @@ header nav a:last-child:hover {
 .plan-accion:hover {
     transform: translateY(-2px); background: #ff343b;
 }
-/* Entrenadores */
+
+/* ENTRENADORES */
 #entrenadores > div {
     display: grid; grid-template-columns: repeat(6, 1fr); gap: 20px; max-width: 1200px;
     margin: 0 auto;
 }
+
 #entrenadores article {
     grid-column: span 2; overflow: hidden; padding-bottom: 22px;
 }
@@ -158,18 +181,22 @@ header nav a:last-child:hover {
 #entrenadores article p:nth-of-type(1) {
     color: #ff343b; font-size: 14px; font-weight: bold;
 }
-/* Rutinas */
+
+/* RUTINAS */
 #rutinas .rutinas-grid {
     display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; max-width: 1200px;
     margin: 0 auto; text-align: left;
 }
+
 #rutinas article {
     padding: 26px;
 }
+
 #rutinas .etiqueta-rutina {
     display: inline-block; margin-bottom: 15px; color: #ff343b; font-size: 12px;
     font-weight: bold; letter-spacing: 1px;
 }
+
 #rutinas article p {
     min-height: 76px; margin-bottom: 18px; color: #aaa7a7;
 }
@@ -182,7 +209,8 @@ header nav a:last-child:hover {
 #rutinas article a:hover {
     color: #ff343b;
 }
-/* Productos y carrito */
+
+/* PRODUCTOS */
 #productos article {
     padding: 24px; text-align: center;
 }
@@ -199,9 +227,12 @@ header nav a:last-child:hover {
 #productos article button:hover {
     transform: translateY(-2px); background: #ff343b;
 }
+
+/* CARRITO */
 .carrito-bloqueo-scroll {
     overflow: hidden;
 }
+
 .carrito-flotante {
     position: fixed; right: 24px; bottom: 24px; z-index: 50;
     display: grid; width: 62px; height: 62px; place-items: center;
@@ -215,15 +246,18 @@ header nav a:last-child:hover {
     width: 30px; height: 30px; fill: none; stroke: currentColor;
     stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.8;
 }
+
 .carrito-contador {
     position: absolute; top: -4px; right: -4px; display: grid;
     min-width: 23px; height: 23px; place-items: center; padding: 0 5px;
     border: 2px solid #0b0b0d; border-radius: 20px; background: #fff; color: #a70d14;
     font-size: 12px; font-weight: bold;
 }
+
 .carrito-rebote {
     animation: carrito-rebote .4s ease;
 }
+
 @keyframes carrito-rebote {
     50% {
         transform: translateY(-8px) scale(1.1);
@@ -233,6 +267,7 @@ header nav a:last-child:hover {
 .carrito-fondo {
     position: fixed; inset: 0; z-index: 60; background: #000a;
 }
+
 .panel-carrito {
     position: fixed; top: 0; right: 0; bottom: 0;
     z-index: 61; display: flex; width: 420px; max-width: 100%;
@@ -242,17 +277,21 @@ header nav a:last-child:hover {
 .panel-carrito.carrito-abierto {
     transform: translateX(0); visibility: visible;
 }
+
 .carrito-encabezado {
     display: flex; align-items: center; justify-content: space-between; gap: 18px;
     padding-bottom: 18px; border-bottom: 1px solid #303034;
 }
+
 .carrito-kicker {
     margin-bottom: 4px; color: #ff343b; font-size: 12px; font-weight: bold;
     letter-spacing: 1px;
 }
+
 .carrito-encabezado h2 {
     font-size: 28px;
 }
+
 .carrito-cerrar {
     display: grid; flex: 0 0 42px; width: 42px; height: 42px;
     place-items: center; padding: 0; border: 1px solid #444; border-radius: 50%;
@@ -265,9 +304,11 @@ header nav a:last-child:hover {
 .carrito-cerrar:hover {
     transform: rotate(90deg); background: #632126;
 }
+
 .carrito-items {
     flex: 1; overflow-y: auto;
 }
+
 .carrito-item {
     display: grid; grid-template-columns: 58px 1fr auto; align-items: center; gap: 10px;
     padding: 16px 0; border-bottom: 1px solid #303034;
@@ -286,6 +327,7 @@ header nav a:last-child:hover {
 .carrito-item-info p {
     color: #d0cccb; font-size: 14px; font-weight: bold;
 }
+
 .carrito-cantidad {
     display: flex; align-items: center; gap: 7px; padding: 4px;
     border: 1px solid #333; border-radius: 20px; background: #18181b;
@@ -301,6 +343,7 @@ header nav a:last-child:hover {
 .carrito-cantidad span {
     min-width: 14px; text-align: center;
 }
+
 .carrito-eliminar {
     grid-column: 2 / 4; justify-self: end; border: 0; background: transparent;
     color: #aaa7a7; font-size: 13px; cursor: pointer;
@@ -308,6 +351,7 @@ header nav a:last-child:hover {
 .carrito-eliminar:hover {
     color: #ff343b; text-decoration: underline;
 }
+
 .carrito-vacio {
     display: flex; flex: 1; flex-direction: column; align-items: center;
     justify-content: center; text-align: center;
@@ -320,16 +364,19 @@ header nav a:last-child:hover {
     place-items: center; border: 1px solid #632126; border-radius: 50%; background: #241416;
     font-size: 30px;
 }
+
 .carrito-vacio h3 {
     margin-bottom: 6px; font-size: 19px;
 }
 .carrito-vacio p {
     color: #aaa7a7; font-size: 14px;
 }
+
 .carrito-pie {
     display: flex; flex-direction: column; gap: 12px; padding-top: 18px;
     border-top: 1px solid #303034;
 }
+
 .carrito-total {
     display: flex; align-items: center; justify-content: space-between;
 }
@@ -339,6 +386,7 @@ header nav a:last-child:hover {
 .carrito-total strong {
     font-size: 24px;
 }
+
 .carrito-pagar {
     width: 100%; padding: 13px 18px; border: 0; border-radius: 7px;
     background: #ed1c24; color: #fff; font-weight: bold; cursor: pointer;
@@ -347,14 +395,17 @@ header nav a:last-child:hover {
 .carrito-pagar:hover {
     transform: translateY(-2px); background: #ff343b;
 }
+
 .carrito-nota, .carrito-feedback {
     color: #aaa7a7; font-size: 12px; line-height: 1.5; text-align: center;
 }
+
 .carrito-feedback:not(:empty) {
     padding: 9px; border: 1px solid #632126; border-radius: 7px; background: #241416;
     color: #ff9da1;
 }
-/* Contacto y pie de página */
+
+/* CONTACTO */
 #contacto {
     display: grid; grid-template-columns: 1.2fr 1fr; align-items: center; gap: 8px 40px;
     padding: 70px 9%; border-top: 1px solid #29292d; background: #0d0d0f;
@@ -365,6 +416,7 @@ header nav a:last-child:hover {
 #contacto > p:not(.dato-contacto) {
     color: #aaa7a7;
 }
+
 #contacto .dato-contacto {
     grid-column: 2; margin: 0; padding: 13px 16px; border: 1px solid #303034;
     border-radius: 8px; background: #18181b; color: #e8e5e4; font-weight: bold;
@@ -378,12 +430,15 @@ header nav a:last-child:hover {
 #contacto .dato-contacto:nth-of-type(4) {
     grid-row: 3;
 }
+
+/* FOOTER */
 footer {
     padding: 36px 20px 26px; border-top: 1px solid #29292d; background: #080809; text-align: center;
 }
 footer img {
     width: 100px; height: 55px; margin: 0 auto 12px; object-fit: contain;
 }
+
 footer p {
     margin-bottom: 7px; color: #aaa7a7;
 }
@@ -393,11 +448,13 @@ footer p:first-of-type {
 footer p:last-of-type {
     margin-top: 18px; color: #777; font-size: 13px;
 }
-/* Formularios */
+
+/* LOGIN Y REGISTRO */
 #login, #registro {
     display: flex; min-height: 100vh; align-items: center; justify-content: center;
     padding: 28px 18px; background: #101012;
 }
+
 .formulario {
     width: 100%; max-width: 440px; padding: 38px; border: 1px solid #632126;
     border-radius: 16px; background: #18181b; box-shadow: 0 12px 30px #0008; text-align: center;
@@ -411,15 +468,18 @@ footer p:last-of-type {
 .formulario > p {
     margin-bottom: 22px; color: #aaa7a7;
 }
+
 .formulario form + p {
     margin: 20px 0 0; font-size: 14px;
 }
 .formulario form {
     display: flex; flex-direction: column; text-align: left;
 }
+
 .formulario label {
     margin-bottom: 7px; color: #e5e1e0; font-size: 14px; font-weight: bold;
 }
+
 .formulario input {
     width: 100%; margin-bottom: 17px; padding: 12px 14px; border: 1px solid #444;
     border-radius: 7px; outline: none; background: #101012; color: #fff;
@@ -427,15 +487,18 @@ footer p:last-of-type {
 .formulario input:focus {
     border-color: #ed1c24; box-shadow: 0 0 0 2px #ed1c2440;
 }
+
 .formulario button {
     width: 100%; margin-top: 5px;
 }
+
 .formulario a {
     color: #ff343b; font-weight: bold;
 }
 .formulario a:hover {
     text-decoration: underline;
 }
+
 .mensaje-interfaz {
     margin-top: 16px; color: #ff8589; font-size: 14px;
 }
@@ -445,7 +508,8 @@ footer p:last-of-type {
 .mensaje-interfaz:not(:empty) {
     padding: 10px; border: 1px solid #632126; border-radius: 7px; background: #241416;
 }
-/* Mi cuenta */
+
+/* MI CUENTA */
 #mi-cuenta {
     padding: 65px 6% 85px; text-align: center;
 }
@@ -463,6 +527,7 @@ footer p:last-of-type {
     display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; max-width: 1100px;
     margin: 0 auto;
 }
+
 #mi-cuenta article {
     padding: 26px; border: 1px solid #303034; border-radius: 14px; background: #18181b;
     text-align: left;
@@ -473,7 +538,8 @@ footer p:last-of-type {
 #mi-cuenta article p {
     margin-bottom: 12px; color: #d2cecd;
 }
-/* Estados de foco y animación sencilla */
+
+/* ANIMACIONES */
 :focus-visible {
     outline: 2px solid #ff343b; outline-offset: 3px;
 }
@@ -494,7 +560,7 @@ footer p:last-of-type {
         animation: none;
     }
 }
-/* Ajustes para tablet */
+/* RESPONSIVE TABLET */
 @media (max-width: 900px) {
     header {
         padding-right: 22px; padding-left: 22px;
@@ -524,7 +590,7 @@ footer p:last-of-type {
         grid-column: auto;
     }
 }
-/* Ajustes para celular */
+/* RESPONSIVE CELULAR */
 @media (max-width: 640px) {
     header {
         position: relative; flex-direction: column; gap: 8px; padding: 10px 14px 14px;
