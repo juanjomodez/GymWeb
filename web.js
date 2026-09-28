@@ -65,7 +65,11 @@ function setupProductCart() {
     panel.innerHTML = `
         <div class="carrito-encabezado">
             <div><p class="carrito-kicker">GYMFLOW STORE</p><h2 id="carrito-titulo">Tu carrito</h2></div>
-            <button class="carrito-cerrar" type="button" aria-label="Cerrar carrito">&times;</button>
+            <button class="carrito-cerrar" type="button" aria-label="Cerrar carrito">
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <path d="m7 7 10 10M17 7 7 17"></path>
+                </svg>
+            </button>
         </div>
         <div class="carrito-items" aria-live="polite"></div>
         <div class="carrito-vacio"><span aria-hidden="true">🛒</span><h3>Tu carrito está vacío</h3><p>Agrega productos y aparecerán aquí.</p></div>

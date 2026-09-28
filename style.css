@@ -249,8 +249,9 @@ footer p:last-of-type { margin-top: 20px; color: #777; font-size: .84rem; }
 .carrito-encabezado { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding-bottom: 20px; border-bottom: 1px solid var(--line); }
 .carrito-kicker { margin-bottom: 4px; color: var(--red-bright); font-size: .72rem; font-weight: 850; letter-spacing: .12em; }
 .carrito-encabezado h2 { font-size: 1.8rem; line-height: 1.2; }
-.carrito-cerrar { display: grid; width: 42px; height: 42px; place-items: center; border: 1px solid var(--line); border-radius: 50%; background: var(--surface-raised); color: #fff; font-size: 1.8rem; line-height: 1; cursor: pointer; transition: background .2s, border-color .2s; }
-.carrito-cerrar:hover { border-color: var(--red); background: rgba(237,28,36,.15); }
+.carrito-cerrar { display: grid; flex: 0 0 42px; width: 42px; height: 42px; padding: 0; place-items: center; border: 1px solid rgba(255,255,255,.12); border-radius: 50%; background: #202024; color: #fff; cursor: pointer; transition: background .2s ease, border-color .2s ease, transform .2s ease; }
+.carrito-cerrar svg { display: block; width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-width: 2; }
+.carrito-cerrar:hover { transform: rotate(90deg); border-color: rgba(255,52,59,.7); background: rgba(237,28,36,.18); }
 .carrito-items { flex: 1; overflow-y: auto; overscroll-behavior: contain; }
 .carrito-item { display: grid; grid-template-columns: 60px minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 18px 0; border-bottom: 1px solid var(--line); }
 .carrito-item > img { width: 60px; height: 60px; border: 1px solid var(--line); border-radius: 10px; background: #fff; object-fit: contain; }
