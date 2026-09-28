@@ -285,3 +285,23 @@ footer p:last-of-type { margin-top: 20px; color: #777; font-size: .84rem; }
     .carrito-fondo, .carrito-rebote { animation: none; }
     .panel-carrito { transition: none; }
 }
+
+/* Detalles de movimiento y respuesta */
+header nav a:not(:last-child) { position: relative; }
+header nav a:not(:last-child)::after { position: absolute; right: 0; bottom: -6px; left: 0; height: 2px; background: var(--red-bright); content: ""; transform: scaleX(0); transform-origin: left; transition: transform .22s ease; }
+header nav a:not(:last-child):hover::after, header nav a:not(:last-child):focus-visible::after { transform: scaleX(1); }
+#inicio img { animation: imagen-portada 7s ease-in-out infinite alternate; }
+@keyframes imagen-portada { from { transform: translateY(0); } to { transform: translateY(-5px); } }
+.animar-entrada { opacity: 0; transform: translate3d(0, 24px, 0); transition: opacity .65s cubic-bezier(.2,.7,.2,1), transform .65s cubic-bezier(.2,.7,.2,1); transition-delay: var(--retraso-entrada, 0ms); }
+.animar-entrada.entrada-visible { opacity: 1; transform: translate3d(0, 0, 0); }
+#planes article.animar-entrada, #entrenadores article.animar-entrada, #rutinas article.animar-entrada, #productos article.animar-entrada {
+    transition: opacity .65s cubic-bezier(.2,.7,.2,1), transform .65s cubic-bezier(.2,.7,.2,1), border-color .25s ease, box-shadow .25s ease;
+    transition-delay: var(--retraso-entrada, 0ms), var(--retraso-entrada, 0ms), 0ms, 0ms;
+}
+#planes article.animar-entrada.entrada-visible:hover, #entrenadores article.animar-entrada.entrada-visible:hover, #rutinas article.animar-entrada.entrada-visible:hover, #productos article.animar-entrada.entrada-visible:hover { transform: translateY(-7px); }
+#inicio a:active, .plan-accion:active, #productos article button:active, .carrito-pagar:active, .carrito-flotante:active { transform: scale(.97); }
+@media (prefers-reduced-motion: reduce) {
+    .animar-entrada, .animar-entrada.entrada-visible { opacity: 1; transform: none; transition: none; }
+    #inicio img { animation: none; }
+    header nav a:not(:last-child)::after { transition: none; }
+}
