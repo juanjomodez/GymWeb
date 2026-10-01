@@ -5,6 +5,7 @@ document.addEventListener("DOMContentLoaded", () => {
     setupMembershipActions();
     setupProductCart();
     setupAuthForms();
+    setupAccount();
 });
 
 function setupScrollAnimations() {
@@ -277,13 +278,69 @@ function setupAuthForms() {
         confirmation.addEventListener("input", validatePasswords);
     }
 
-    form.addEventListener("submit", (event) => {
+    form.addEventListener("submit", async (event) => {
         event.preventDefault();
         if (!form.reportValidity()) return;
 
         feedback.classList.add("mensaje-visible");
-        feedback.textContent = registration
-            ? "aun falta eso"
-            : "aun falta eso";
+        if (window.location.protocol === "file:") {
+            feedback.textContent = "Abre esta página desde http://127.0.0.1:3000 para continuar.";
+            return;
+        }
+        const button = form.querySelector('button[type="submit"]');
+        if (button.disabled) return;
+        button.disabled = true;
+        feedback.textContent = registration ? "Creando tu cuenta…" : "Iniciando sesión…";
+        try {
+            const response = await fetch(registration ? "/api/usuarios" : "/api/login", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    ...(registration ? { nombre: form.querySelector("#nombre").value } : {}),
+                    correo: form.querySelector("#correo").value,
+                    password: password.value
+                })
+            });
+            const result = await response.json();
+            feedback.textContent = result.message || "No se pudo completar el registro.";
+            if (response.ok) {
+                if (!registration) {
+                    window.location.assign("micuenta.html");
+                    return;
+                }
+                form.reset();
+                confirmation.setCustomValidity("");
+                feedback.textContent = "Cuenta creada correctamente. Ya puedes iniciar sesión.";
+            }
+        } catch {
+            feedback.textContent = "No se pudo contactar con el servidor. Comprueba que el backend esté activo.";
+        } finally {
+            button.disabled = false;
+        }
+    });
+}
+
+async function setupAccount() {
+    const message = document.querySelector("#cuenta-mensaje");
+    if (!message) return;
+    const button = document.querySelector("#cerrar-sesion");
+    try {
+        const response = await fetch("/api/me", { cache: "no-store" });
+        if (response.status === 401) { window.location.replace("login.html"); return; }
+        if (!response.ok) throw new Error();
+        const { usuario } = await response.json();
+        document.querySelector("#cuenta-nombre").textContent = usuario.nombre;
+        document.querySelector("#cuenta-correo").textContent = usuario.correo;
+    } catch { message.textContent = "No se pudo cargar tu cuenta. Intenta recargar la página."; }
+    button.addEventListener("click", async () => {
+        button.disabled = true;
+        try {
+            const response = await fetch("/api/logout", { method: "POST" });
+            if (!response.ok) throw new Error();
+            window.location.replace("login.html");
+        } catch {
+            message.textContent = "No se pudo cerrar sesión. Intenta nuevamente.";
+            button.disabled = false;
+        }
     });
 }
