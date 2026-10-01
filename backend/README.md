@@ -1,5 +1,36 @@
 # Gym — Avance 1
 
+## Fase 4: planes y solicitudes de membresía
+
+Reinicia el backend y abre **http://127.0.0.1:3000/index.html#planes**.
+Selecciona un plan con una sesión iniciada. Si no has iniciado sesión, se abre
+el login y se conserva la selección; en Mi cuenta se pide confirmarla.
+El enlace a registro también conserva la selección. La solicitud no inicia
+pagos ni activa acceso: queda `pendiente`, con fechas de inicio y fin vacías.
+Mi cuenta muestra el nombre del plan, precio, estado y fecha de solicitud.
+
+`GET /api/planes` carga el catálogo de `GymWeb.planes`. Al primer uso se insertan
+los cuatro planes del frontend mediante upsert con `$setOnInsert`, sin sobrescribir
+planes existentes: Básico 60.000 COP, Familiar 150.000 COP, Premium individual
+100.000 COP y Premium familiar 350.000 COP, todos por mes. Puedes modificar
+los documentos en Atlas; `disponible: false` impide nuevas solicitudes.
+Los planes familiares admiten hasta cinco personas; asociar beneficiarios y
+reservar entrenadores son funciones futuras.
+
+`POST /api/membresia` recibe únicamente `planId` y exige sesión. El servidor
+obtiene identidad, precio y condiciones; ignora precios, usuarios y estados
+enviados por el navegador. `GET /api/membresia` muestra solo la del usuario
+autenticado. La colección `membresias` usa el ID del usuario como `_id` único,
+por lo que solo permite una membresía por usuario, pendiente o activa, incluso
+con peticiones simultáneas. No implementa todavía historial, renovación,
+cambio de plan, cancelación ni activación. Las condiciones del plan se copian
+en la solicitud para conservar el precio acordado al pedirlo.
+
+Las pruebas cubren acceso, aislamiento entre usuarios, precio del servidor,
+validación y duplicados. `npm run verify:atlas` también prueba solicitudes
+concurrentes en MongoDB y limpia la membresía de su cuenta temporal. El catálogo
+y las colecciones creadas permanecen como datos iniciales del proyecto.
+
 ## Fase 3: inicio de sesión y Mi cuenta
 
 Reinicia `npm start` y abre **http://127.0.0.1:3000/login.html** (no Live Server).

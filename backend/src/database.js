@@ -1,9 +1,17 @@
 import { MongoClient, ObjectId } from 'mongodb';
+import { initialPlans } from './plans.js';
 
 export function createDatabase({ uri, database }) {
   let client;
   let indexesReady;
   let sessionIndexes;
+  let plansReady;
+  async function ensurePlans() {
+    plansReady ??= getDb().collection('planes').bulkWrite(initialPlans.map(plan => ({
+      updateOne: { filter: { _id: plan._id }, update: { $setOnInsert: plan }, upsert: true },
+    }))).catch(error => { plansReady = undefined; throw error; });
+    await plansReady;
+  }
   function getDb() {
     if (!uri) throw new Error('MONGODB_URI no configurada');
     client ??= new MongoClient(uri, {
@@ -13,6 +21,21 @@ export function createDatabase({ uri, database }) {
     return client.db(database);
   }
   return {
+    async listPlans() {
+      await ensurePlans();
+      return getDb().collection('planes').find({ disponible: true }).toArray();
+    },
+    async findPlan(id) {
+      await ensurePlans();
+      return getDb().collection('planes').findOne({ _id: id, disponible: true });
+    },
+    async findMembership(userId) {
+      return getDb().collection('membresias').findOne({ _id: userId });
+    },
+    async createMembership(membership) {
+      // _id es el usuario: MongoDB impide solicitudes concurrentes duplicadas.
+      await getDb().collection('membresias').insertOne(membership);
+    },
     async findUserByEmail(correo) {
       return getDb().collection('usuarios').findOne({ correo });
     },

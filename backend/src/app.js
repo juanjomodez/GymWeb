@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { hashPassword, validateRegistration } from './registration.js';
 import { setupAuth } from './auth.js';
+import { setupMemberships } from './plans.js';
 
 const frontend = fileURLToPath(new URL('../../', import.meta.url));
 
@@ -11,6 +12,7 @@ export function createApp(database) {
   app.disable('x-powered-by');
   app.use(express.json({ limit: '8kb' }));
   const requireUser = setupAuth(app, database);
+  setupMemberships(app, database, requireUser);
   app.get('/micuenta.html', requireUser, (_req, res) => res.sendFile(path.join(frontend, 'micuenta.html'), { dotfiles: 'allow' }));
 
   // Lista explícita: nunca servir backend/, .env ni archivos internos.
