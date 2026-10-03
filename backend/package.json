@@ -1,0 +1,14 @@
+{
+  "name": "gym-backend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22.13.0" },
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "test": "node --test",
+    "verify:atlas": "node scripts/verify-registration.js"
+  },
+  "dependencies": { "express": "^5.1.0", "mongodb": "^7.0.0" }
+}
