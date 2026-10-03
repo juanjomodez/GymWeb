@@ -16,11 +16,13 @@ export function createApp(database) {
   app.get('/micuenta.html', requireUser, (_req, res) => res.sendFile(path.join(frontend, 'micuenta.html'), { dotfiles: 'allow' }));
 
   // Lista explícita: nunca servir backend/, .env ni archivos internos.
-  for (const file of ['index.html', 'registro.html', 'login.html', 'style.css', 'web.js']) {
+  for (const file of ['index.html', 'registro.html', 'login.html', 'style.css', 'experiencia.css', 'web.js']) {
     app.get(`/${file}`, (_req, res) => res.sendFile(path.join(frontend, file), { dotfiles: 'allow' }));
   }
   app.get('/', (_req, res) => res.sendFile(path.join(frontend, 'index.html'), { dotfiles: 'allow' }));
   app.use('/img', express.static(path.join(frontend, 'img'), { dotfiles: 'deny' }));
+  app.use('/js', express.static(path.join(frontend, 'js'), { dotfiles: 'deny' }));
+  app.use('/assets', express.static(path.join(frontend, 'assets'), { dotfiles: 'deny' }));
 
   let activeRegistrations = 0;
   app.post('/api/usuarios', async (request, response) => {
