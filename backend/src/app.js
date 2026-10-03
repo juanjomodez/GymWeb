@@ -4,25 +4,31 @@ import path from 'node:path';
 import { hashPassword, validateRegistration } from './registration.js';
 import { setupAuth } from './auth.js';
 import { setupMemberships } from './plans.js';
+import { setupAdministration } from './memberships.js';
+import { setupRoutines } from './routines.js';
+import { setupSimulatedPayments } from './simulated-payments.js';
+import { setupProducts } from './products.js';
 
 const frontend = fileURLToPath(new URL('../../', import.meta.url));
 
-export function createApp(database) {
+export function createApp(database, { now = () => new Date(), environment = 'production', demoPayments = false } = {}) {
   const app = express();
   app.disable('x-powered-by');
   app.use(express.json({ limit: '8kb' }));
   const requireUser = setupAuth(app, database);
-  setupMemberships(app, database, requireUser);
+  setupMemberships(app, database, requireUser, now);
+  setupAdministration(app, database, requireUser, now);
+  setupRoutines(app, database, requireUser, now);
+  setupSimulatedPayments(app, database, requireUser, now, { environment, demoPayments });
+  setupProducts(app, database, requireUser, now);
   app.get('/micuenta.html', requireUser, (_req, res) => res.sendFile(path.join(frontend, 'micuenta.html'), { dotfiles: 'allow' }));
 
   // Lista explícita: nunca servir backend/, .env ni archivos internos.
-  for (const file of ['index.html', 'registro.html', 'login.html', 'style.css', 'experiencia.css', 'web.js']) {
+  for (const file of ['index.html', 'registro.html', 'login.html', 'style.css', 'web.js', 'rutinas.js', 'productos.js']) {
     app.get(`/${file}`, (_req, res) => res.sendFile(path.join(frontend, file), { dotfiles: 'allow' }));
   }
   app.get('/', (_req, res) => res.sendFile(path.join(frontend, 'index.html'), { dotfiles: 'allow' }));
   app.use('/img', express.static(path.join(frontend, 'img'), { dotfiles: 'deny' }));
-  app.use('/js', express.static(path.join(frontend, 'js'), { dotfiles: 'deny' }));
-  app.use('/assets', express.static(path.join(frontend, 'assets'), { dotfiles: 'deny' }));
 
   let activeRegistrations = 0;
   app.post('/api/usuarios', async (request, response) => {

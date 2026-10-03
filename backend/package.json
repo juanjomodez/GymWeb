@@ -6,9 +6,11 @@
   "engines": { "node": ">=22.13.0" },
   "scripts": {
     "start": "node src/server.js",
+    "start:demo": "node scripts/start-demo.js",
     "dev": "node --watch src/server.js",
     "test": "node --test",
-    "verify:atlas": "node scripts/verify-registration.js"
+    "verify:atlas": "node scripts/verify-registration.js",
+    "admin:prepare": "node scripts/prepare-admin.js"
   },
   "dependencies": { "express": "^5.1.0", "mongodb": "^7.0.0" }
 }

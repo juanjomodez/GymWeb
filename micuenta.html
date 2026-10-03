@@ -37,13 +37,138 @@
                 <article>
                     <h2>Mi membresía</h2>
                     <div id="cuenta-membresia" aria-live="polite">Cargando membresía…</div>
+                    <div id="pago-simulado" hidden>
+                        <h3>Pago simulado</h3>
+                        <p>Prueba de desarrollo. No se realiza ningún cobro ni se solicitan datos bancarios.</p>
+                        <label for="pago-resultado">Resultado de prueba</label>
+                        <select id="pago-resultado">
+                            <option value="aprobado">Aprobado: activar membresía</option>
+                            <option value="rechazado">Rechazado: mantener pendiente</option>
+                        </select>
+                        <button type="button" id="simular-pago">Simular pago</button>
+                    </div>
+                    <p id="pago-mensaje" role="status" aria-live="polite"></p>
+                    <button type="button" id="actualizar-membresia">Actualizar membresía</button>
                     <a href="index.html#planes">Ver planes</a>
                 </article>
 
             </div>
+            <section id="mis-rutinas" class="cuenta-seccion" aria-labelledby="rutinas-titulo">
+                <h2 id="rutinas-titulo">Mis rutinas</h2>
+                <p>Rutinas generales para miembros con acceso vigente, disponibles con cualquiera de nuestros planes.</p>
+                <div class="admin-controles">
+                    <label for="rutinas-nivel">Nivel</label>
+                    <select id="rutinas-nivel">
+                        <option value="">Todos los niveles</option>
+                        <option value="principiante">Principiante</option>
+                        <option value="intermedio">Intermedio</option>
+                        <option value="avanzado">Avanzado</option>
+                    </select>
+                    <button type="button" id="rutinas-actualizar">Actualizar rutinas</button>
+                </div>
+                <p id="rutinas-mensaje" role="status" aria-live="polite">Comprobando acceso…</p>
+                <div id="rutinas-lista" class="cuenta-tarjetas"></div>
+                <button type="button" id="rutinas-mas" hidden>Ver más rutinas</button>
+            </section>
+            <section id="administracion-membresias" hidden aria-labelledby="admin-titulo">
+                <h2 id="admin-titulo">Administrar membresías</h2>
+                <p>Activa solicitudes por un mes calendario. No se realiza ningún cobro.</p>
+                <div class="admin-controles">
+                    <label for="admin-estado">Estado</label>
+                    <select id="admin-estado">
+                        <option value="pendiente">Pendientes</option>
+                        <option value="activa">Activas</option>
+                        <option value="vencida">Vencidas</option>
+                    </select>
+                    <button type="button" id="admin-actualizar">Actualizar lista</button>
+                </div>
+                <p id="admin-mensaje" role="status" aria-live="polite"></p>
+                <div id="admin-lista"></div>
+                <button type="button" id="admin-mas" hidden>Ver más</button>
+            </section>
+            <section id="administracion-rutinas" class="cuenta-seccion" hidden aria-labelledby="rutinas-admin-titulo">
+                <h2 id="rutinas-admin-titulo">Administrar rutinas</h2>
+                <p>Crea rutinas generales, edítalas o retíralas del catálogo de miembros.</p>
+                <div class="admin-controles">
+                    <label for="rutinas-disponibilidad">Mostrar</label>
+                    <select id="rutinas-disponibilidad">
+                        <option value="todas">Todas</option>
+                        <option value="disponibles">Disponibles</option>
+                        <option value="deshabilitadas">Deshabilitadas</option>
+                    </select>
+                    <button type="button" id="rutinas-admin-actualizar">Actualizar catálogo</button>
+                </div>
+                <p id="rutinas-admin-mensaje" role="status" aria-live="polite"></p>
+                <div id="rutinas-admin-lista" class="cuenta-tarjetas"></div>
+                <button type="button" id="rutinas-admin-mas" hidden>Ver más del catálogo</button>
+                <form id="rutina-formulario" class="rutina-editor">
+                    <h3 id="rutina-editor-titulo">Crear rutina</h3>
+                    <label for="rutina-nombre">Nombre</label>
+                    <input id="rutina-nombre" name="nombre" required minlength="2" maxlength="100">
+                    <label for="rutina-objetivo">Objetivo</label>
+                    <textarea id="rutina-objetivo" name="objetivo" required minlength="5" maxlength="500" rows="3"></textarea>
+                    <label for="rutina-nivel">Nivel de la rutina</label>
+                    <select id="rutina-nivel" name="nivel">
+                        <option value="principiante">Principiante</option>
+                        <option value="intermedio">Intermedio</option>
+                        <option value="avanzado">Avanzado</option>
+                    </select>
+                    <label class="rutina-checkbox"><input id="rutina-disponible" name="disponible" type="checkbox" checked> Disponible para miembros</label>
+                    <h4>Ejercicios</h4>
+                    <p>Entre 1 y 20 ejercicios. Indica repeticiones o duración, por ejemplo «8–12» o «30 segundos».</p>
+                    <div id="rutina-ejercicios"></div>
+                    <button type="button" id="rutina-agregar">Agregar ejercicio</button>
+                    <div class="admin-controles">
+                        <button type="submit" id="rutina-guardar">Crear rutina</button>
+                        <button type="button" id="rutina-cancelar" hidden>Cancelar edición</button>
+                    </div>
+                    <p id="rutina-form-mensaje" role="status" aria-live="polite"></p>
+                </form>
+            </section>
+            <section id="administracion-productos" class="cuenta-seccion" hidden aria-labelledby="productos-admin-titulo">
+                <h2 id="productos-admin-titulo">Administrar productos</h2>
+                <p>Gestiona el catálogo, los precios en COP y las existencias. Los productos deshabilitados se retiran de la tienda.</p>
+                <div class="admin-controles">
+                    <label for="productos-disponibilidad">Mostrar productos</label>
+                    <select id="productos-disponibilidad">
+                        <option value="todas">Todos</option>
+                        <option value="disponibles">Publicados</option>
+                        <option value="deshabilitados">Deshabilitados</option>
+                    </select>
+                    <button type="button" id="productos-admin-actualizar">Actualizar productos</button>
+                </div>
+                <p id="productos-admin-mensaje" role="status" aria-live="polite"></p>
+                <div id="productos-admin-lista" class="cuenta-tarjetas"></div>
+                <button type="button" id="productos-admin-mas" hidden>Ver más productos del catálogo</button>
+                <form id="producto-formulario" class="rutina-editor">
+                    <h3 id="producto-editor-titulo">Crear producto</h3>
+                    <label for="producto-nombre">Nombre del producto</label>
+                    <input id="producto-nombre" name="nombre" required minlength="2" maxlength="100">
+                    <label for="producto-descripcion">Descripción del producto</label>
+                    <textarea id="producto-descripcion" name="descripcion" required minlength="5" maxlength="500" rows="3"></textarea>
+                    <label for="producto-precio">Precio en COP</label>
+                    <input id="producto-precio" name="precio" type="number" required min="1" max="100000000" step="1">
+                    <label for="producto-stock">Existencias</label>
+                    <input id="producto-stock" name="stock" type="number" required min="0" max="9999" step="1" value="0">
+                    <label for="producto-imagen">Imagen del producto</label>
+                    <select id="producto-imagen" name="imagen">
+                        <option value="img/proteina.jpg">Proteína</option>
+                        <option value="img/creatina.jpg">Creatina</option>
+                        <option value="img/shaker.jpg">Shaker</option>
+                    </select>
+                    <label class="rutina-checkbox"><input id="producto-disponible" name="disponible" type="checkbox"> Publicado en la tienda</label>
+                    <div class="admin-controles">
+                        <button type="submit" id="producto-guardar">Crear producto</button>
+                        <button type="button" id="producto-cancelar" hidden>Cancelar edición del producto</button>
+                    </div>
+                    <p id="producto-form-mensaje" role="status" aria-live="polite"></p>
+                </form>
+            </section>
         </section>
     </main>
     <script src="web.js" defer></script>
+    <script src="rutinas.js" defer></script>
+    <script src="productos.js" defer></script>
 </body>
 
 </html>

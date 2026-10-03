@@ -3,7 +3,6 @@
 document.addEventListener("DOMContentLoaded", () => {
     setupScrollAnimations();
     setupMembershipActions();
-    setupProductCart();
     setupAuthForms();
     setupAccount();
     updateAccountNavigation();
@@ -138,187 +137,6 @@ async function setupMembershipActions() {
         feedback.textContent = planes.length ? "Las solicitudes quedan pendientes de activación. No se realiza ningún cobro." : "No hay planes disponibles.";
     } catch { feedback.textContent = "No se pudieron cargar los planes. Abre la web desde http://127.0.0.1:3000 y comprueba el backend."; }
 }
-function setupProductCart() {
-    const productSection = document.querySelector("#productos");
-    if (!productSection) return;
-
-    const cart = new Map();
-    const cartButton = document.createElement("button");
-    cartButton.className = "carrito-flotante";
-    cartButton.type = "button";
-    cartButton.setAttribute("aria-label", "Abrir carrito");
-    cartButton.setAttribute("aria-expanded", "false");
-    cartButton.setAttribute("aria-controls", "panel-carrito");
-    cartButton.innerHTML = `
-        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-            <path d="M2 3h2l2.2 11.2a2 2 0 0 0 2 1.6h8.9a2 2 0 0 0 1.9-1.4L21 7H6"></path>
-            <circle cx="9" cy="20" r="1.4"></circle>
-            <circle cx="18" cy="20" r="1.4"></circle>
-        </svg>
-        <span class="carrito-contador" aria-live="polite">0</span>
-    `;
-
-    const backdrop = document.createElement("div");
-    backdrop.className = "carrito-fondo";
-    backdrop.hidden = true;
-
-    const panel = document.createElement("aside");
-    panel.className = "panel-carrito";
-    panel.id = "panel-carrito";
-    panel.setAttribute("role", "dialog");
-    panel.setAttribute("aria-modal", "true");
-    panel.setAttribute("aria-labelledby", "carrito-titulo");
-    panel.setAttribute("aria-hidden", "true");
-    panel.innerHTML = `
-        <div class="carrito-encabezado">
-            <div><p class="carrito-kicker">GYMFLOW STORE</p><h2 id="carrito-titulo">Tu carrito</h2></div>
-            <button class="carrito-cerrar" type="button" aria-label="Cerrar carrito">
-                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                    <path d="m7 7 10 10M17 7 7 17"></path>
-                </svg>
-            </button>
-        </div>
-        <div class="carrito-items" aria-live="polite"></div>
-        <div class="carrito-vacio"><span aria-hidden="true">🛒</span><h3>Tu carrito está vacío</h3><p>Agrega productos y aparecerán aquí.</p></div>
-        <div class="carrito-pie" hidden>
-            <div class="carrito-total"><span>Total</span><strong></strong></div>
-            <button class="carrito-pagar" type="button">Continuar al pago</button>
-            <p class="carrito-nota">El pago se habilitará cuando conectemos la plataforma.</p>
-            <p class="carrito-feedback" role="status" aria-live="polite"></p>
-        </div>
-    `;
-    document.body.append(backdrop, panel, cartButton);
-
-    const countLabel = cartButton.querySelector(".carrito-contador");
-    const itemList = panel.querySelector(".carrito-items");
-    const emptyState = panel.querySelector(".carrito-vacio");
-    const footer = panel.querySelector(".carrito-pie");
-    const totalLabel = panel.querySelector(".carrito-total strong");
-    const payButton = panel.querySelector(".carrito-pagar");
-    const feedback = panel.querySelector(".carrito-feedback");
-    const currency = new Intl.NumberFormat("es-CO", {
-        style: "currency",
-        currency: "COP",
-        maximumFractionDigits: 0
-    });
-
-    const setPanelOpen = (open) => {
-        panel.classList.toggle("carrito-abierto", open);
-        backdrop.hidden = !open;
-        cartButton.setAttribute("aria-expanded", String(open));
-        panel.setAttribute("aria-hidden", String(!open));
-        document.body.classList.toggle("carrito-bloqueo-scroll", open);
-        if (open) panel.querySelector(".carrito-cerrar").focus();
-        else cartButton.focus();
-    };
-
-    const renderCart = () => {
-        const itemCount = [...cart.values()].reduce((sum, item) => sum + item.quantity, 0);
-        const total = [...cart.values()].reduce((sum, item) => sum + item.price * item.quantity, 0);
-        countLabel.textContent = String(itemCount);
-        cartButton.setAttribute("aria-label", `Abrir carrito, ${itemCount} ${itemCount === 1 ? "producto" : "productos"}`);
-        emptyState.hidden = itemCount > 0;
-        footer.hidden = itemCount === 0;
-        itemList.replaceChildren();
-
-        cart.forEach((item, name) => {
-            const row = document.createElement("article");
-            row.className = "carrito-item";
-
-            const image = document.createElement("img");
-            image.src = item.image;
-            image.alt = "";
-
-            const info = document.createElement("div");
-            info.className = "carrito-item-info";
-            const title = document.createElement("h3");
-            title.textContent = name;
-            const price = document.createElement("p");
-            price.textContent = currency.format(item.price);
-            info.append(title, price);
-
-            const controls = document.createElement("div");
-            controls.className = "carrito-cantidad";
-            controls.innerHTML = `
-                <button type="button" data-cart-action="decrease" aria-label="Quitar una unidad de ${name}">−</button>
-                <span>${item.quantity}</span>
-                <button type="button" data-cart-action="increase" aria-label="Agregar una unidad de ${name}">+</button>
-            `;
-
-            const remove = document.createElement("button");
-            remove.className = "carrito-eliminar";
-            remove.type = "button";
-            remove.dataset.cartAction = "remove";
-            remove.setAttribute("aria-label", `Eliminar ${name} del carrito`);
-            remove.textContent = "Quitar";
-            row.append(image, info, controls, remove);
-            itemList.append(row);
-        });
-
-        totalLabel.textContent = currency.format(total);
-    };
-
-    cartButton.addEventListener("click", () => setPanelOpen(!panel.classList.contains("carrito-abierto")));
-    panel.querySelector(".carrito-cerrar").addEventListener("click", () => setPanelOpen(false));
-    backdrop.addEventListener("click", () => setPanelOpen(false));
-    document.addEventListener("keydown", (event) => {
-        if (event.key === "Escape" && panel.classList.contains("carrito-abierto")) setPanelOpen(false);
-    });
-
-    productSection.addEventListener("click", (event) => {
-        const button = event.target.closest("button");
-        if (!button) return;
-
-        const productCard = button.closest("article");
-        const productName = productCard?.querySelector("h3")?.textContent.trim();
-        if (!productName) return;
-
-        const productPrice = Number(productCard.querySelector("p:nth-of-type(2)")?.textContent.replace(/\D/g, ""));
-        const productImage = productCard.querySelector("img")?.getAttribute("src");
-        if (!Number.isFinite(productPrice) || !productImage) return;
-
-        const currentItem = cart.get(productName);
-        cart.set(productName, {
-            price: productPrice,
-            image: productImage,
-            quantity: (currentItem?.quantity || 0) + 1
-        });
-        renderCart();
-        cartButton.classList.remove("carrito-rebote");
-        void cartButton.offsetWidth;
-        cartButton.classList.add("carrito-rebote");
-        button.textContent = "Agregado";
-        window.setTimeout(() => {
-            if (button.isConnected) button.textContent = "Agregar al carrito";
-        }, 850);
-    });
-
-    panel.addEventListener("click", (event) => {
-        const control = event.target.closest("[data-cart-action]");
-        if (!control) return;
-        const row = control.closest(".carrito-item");
-        const name = row?.querySelector("h3")?.textContent;
-        const item = cart.get(name);
-        if (!item) return;
-
-        if (control.dataset.cartAction === "remove" || (control.dataset.cartAction === "decrease" && item.quantity === 1)) {
-            cart.delete(name);
-        } else if (control.dataset.cartAction === "decrease") {
-            item.quantity -= 1;
-        } else if (control.dataset.cartAction === "increase") {
-            item.quantity += 1;
-        }
-        feedback.textContent = "";
-        renderCart();
-    });
-
-    payButton.addEventListener("click", () => {
-        feedback.textContent = "El carrito está listo. El procesamiento del pago estará disponible al conectar el backend.";
-    });
-
-    renderCart();
-}
-
 function setupAuthForms() {
     const form = document.querySelector(".formulario form");
     if (!form) return;
@@ -337,7 +155,7 @@ function setupAuthForms() {
     if (registration) {
         const selectedPlan = new URLSearchParams(window.location.search).get("plan");
         if (selectedPlan) {
-            feedback.textContent = `Plan seleccionado: ${selectedPlan}. Podrás confirmar la membresía cuando esté conectada la plataforma.`;
+            feedback.textContent = `Plan seleccionado: ${selectedPlan}. Podrás confirmar la solicitud después de iniciar sesión.`;
         }
 
         const validatePasswords = () => {
@@ -405,7 +223,11 @@ async function setupAccount() {
         const { usuario } = await response.json();
         document.querySelector("#cuenta-nombre").textContent = usuario.nombre;
         document.querySelector("#cuenta-correo").textContent = usuario.correo;
+        await setupSimulatedPayments();
         await loadMembership();
+        if (usuario.rol === 'admin') setupMembershipAdministration();
+        setupRoutines(usuario);
+        setupProductAdministration(usuario);
     } catch { message.textContent = "No se pudo cargar tu cuenta. Intenta recargar la página."; }
     button.addEventListener("click", async () => {
         button.disabled = true;
@@ -418,28 +240,57 @@ async function setupAccount() {
             button.disabled = false;
         }
     });
+    document.querySelector('#actualizar-membresia').addEventListener('click', loadMembership);
 }
 
+let membershipExpiryTimer;
+let membershipLoadGeneration = 0;
+let demoPaymentsEnabled = false;
+let demoPaymentBusy = false;
+const membershipDate = value => value ? new Intl.DateTimeFormat('es-CO', {
+    timeZone: 'America/Bogota', dateStyle: 'medium', timeStyle: 'short'
+}).format(new Date(value)) + ' (Bogotá)' : 'Pendiente de activación';
+
 async function loadMembership() {
+    const generation = ++membershipLoadGeneration;
+    window.clearTimeout(membershipExpiryTimer);
     const target = document.querySelector('#cuenta-membresia');
     try {
         const response = await fetch('/api/membresia', { cache: 'no-store' });
+        if (response.status === 401) { window.location.replace('login.html'); return; }
         if (!response.ok) throw new Error();
         const { membresia } = await response.json();
+        if (generation !== membershipLoadGeneration) return;
+        document.querySelector('#pago-simulado').hidden = !demoPaymentsEnabled || membresia?.estado !== 'pendiente';
         target.replaceChildren();
         if (membresia) {
-            const date = value => value ? new Date(value).toLocaleDateString('es-CO') : 'Pendiente de activación';
             for (const text of [
                 `Plan: ${membresia.planNombre}`,
                 `Precio: ${new Intl.NumberFormat('es-CO', { style: 'currency', currency: membresia.moneda }).format(membresia.precio)} / ${membresia.periodo}`,
                 `Estado: ${membresia.estado}`,
-                `Solicitud: ${date(membresia.solicitadaEn)}`,
-                `Inicio: ${date(membresia.inicio)}`,
-                `Fin: ${date(membresia.fin)}`
+                `Acceso: ${membresia.accesoActivo ? 'Habilitado' : 'No habilitado'}`,
+                `Solicitud: ${membershipDate(membresia.solicitadaEn)}`,
+                `Inicio: ${membershipDate(membresia.inicio)}`,
+                `Vence: ${membershipDate(membresia.fin)}`
             ]) {
                 const line = document.createElement('p');
                 line.textContent = text;
                 target.append(line);
+            }
+            if (membresia.pagoSimulado) {
+                const payment = membresia.pagoSimulado;
+                const receipt = document.createElement('p');
+                receipt.textContent = `Último pago simulado: ${payment.resultado} · ${new Intl.NumberFormat('es-CO', { style: 'currency', currency: payment.moneda }).format(payment.monto)} · ${membershipDate(payment.registradaEn)}. Sin cobro real.`;
+                target.append(receipt);
+            }
+            if (membresia.accesoActivo) {
+                membershipExpiryTimer = window.setTimeout(loadMembership,
+                    Math.min(2147483647, Math.max(1000, new Date(membresia.fin).getTime() - Date.now() + 50)));
+            }
+            if (membresia.estado === 'vencida') {
+                const note = document.createElement('p');
+                note.textContent = 'Tu membresía venció. La renovación todavía no está disponible.';
+                target.append(note);
             }
         } else {
             target.textContent = 'Aún no has solicitado una membresía.';
@@ -448,7 +299,7 @@ async function loadMembership() {
             const catalog = await fetch('/api/planes');
             if (!catalog.ok) throw new Error();
             const plan = (await catalog.json()).planes.find(item => item._id === planId);
-            if (!plan) return;
+            if (!plan || generation !== membershipLoadGeneration) return;
             const confirm = document.createElement('button');
             confirm.type = 'button';
             confirm.textContent = `Confirmar solicitud: ${plan.nombre}`;
@@ -467,5 +318,131 @@ async function loadMembership() {
                 finally { confirm.disabled = false; }
             });
         }
-    } catch { target.textContent = 'No se pudo cargar la membresía. Recarga para intentar nuevamente.'; }
+    } catch {
+        if (generation === membershipLoadGeneration) {
+            target.textContent = 'No se pudo cargar la membresía. Recarga para intentar nuevamente.';
+            document.querySelector('#pago-simulado').hidden = true;
+        }
+    }
+    finally { if (generation === membershipLoadGeneration) document.dispatchEvent(new Event('membership-updated')); }
+}
+
+async function setupSimulatedPayments() {
+    const button = document.querySelector('#simular-pago');
+    const result = document.querySelector('#pago-resultado');
+    const status = document.querySelector('#pago-mensaje');
+    button.addEventListener('click', async () => {
+        if (demoPaymentBusy || !demoPaymentsEnabled) return;
+        demoPaymentBusy = true;
+        button.disabled = result.disabled = true;
+        status.textContent = 'Procesando simulación…';
+        try {
+            const response = await fetch('/api/pagos/simulados', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ resultado: result.value })
+            });
+            if (response.status === 401) { window.location.replace('login.html'); return; }
+            const body = await response.json();
+            status.textContent = body.message;
+            if (response.status === 403) { demoPaymentsEnabled = false; document.querySelector('#pago-simulado').hidden = true; }
+            await loadMembership();
+        } catch { status.textContent = 'No se pudo confirmar el pago simulado. Actualiza la membresía antes de reintentar; una aprobación conserva sus fechas.'; }
+        finally { demoPaymentBusy = false; button.disabled = result.disabled = false; }
+    });
+    try {
+        const response = await fetch('/api/pagos/simulacion', { cache: 'no-store' });
+        if (!response.ok) throw new Error();
+        demoPaymentsEnabled = (await response.json()).habilitada === true;
+    } catch { status.textContent = 'No se pudo comprobar la disponibilidad del pago simulado. Recarga la página para intentarlo.'; }
+}
+
+function setupMembershipAdministration() {
+    const panel = document.querySelector('#administracion-membresias');
+    const list = document.querySelector('#admin-lista');
+    const status = document.querySelector('#admin-mensaje');
+    const filter = document.querySelector('#admin-estado');
+    const refresh = document.querySelector('#admin-actualizar');
+    const more = document.querySelector('#admin-mas');
+    let next = null;
+    let busy = false;
+    panel.hidden = false;
+    const controls = disabled => {
+        busy = disabled;
+        for (const control of panel.querySelectorAll('button, select')) control.disabled = disabled;
+    };
+    const handleDenied = response => {
+        if (response.status === 401) { window.location.replace('login.html'); return true; }
+        if (response.status === 403) {
+            panel.hidden = true;
+            document.querySelector('#cuenta-mensaje').textContent = 'Ya no tienes permisos de administrador.';
+            return true;
+        }
+        return false;
+    };
+    async function load(append = false) {
+        if (busy) return;
+        controls(true);
+        status.textContent = 'Cargando membresías…';
+        if (!append) { list.replaceChildren(); next = null; more.hidden = true; }
+        try {
+            const query = new URLSearchParams({ estado: filter.value });
+            if (append && next) query.set('despues', next);
+            const response = await fetch('/api/admin/membresias?' + query, { cache: 'no-store' });
+            if (handleDenied(response)) return;
+            if (!response.ok) throw new Error();
+            const body = await response.json();
+            for (const membership of body.membresias) {
+                const card = document.createElement('article');
+                const title = document.createElement('h3');
+                title.textContent = membership.usuario?.nombre || 'Cuenta no disponible';
+                card.append(title);
+                for (const text of [
+                    membership.usuario?.correo || membership._id,
+                    `${membership.planNombre} · ${new Intl.NumberFormat('es-CO', { style: 'currency', currency: membership.moneda }).format(membership.precio)} / ${membership.periodo}`,
+                    `Estado: ${membership.estado}`,
+                    `Solicitud: ${membershipDate(membership.solicitadaEn)}`,
+                    `Inicio: ${membershipDate(membership.inicio)}`,
+                    `Vence: ${membershipDate(membership.fin)}`
+                ]) {
+                    const line = document.createElement('p');
+                    line.textContent = text;
+                    card.append(line);
+                }
+                if (membership.estado === 'pendiente') {
+                    const activate = document.createElement('button');
+                    activate.type = 'button';
+                    activate.textContent = 'Activar por un mes';
+                    activate.addEventListener('click', async () => {
+                        if (busy) return;
+                        controls(true);
+                        status.textContent = 'Activando membresía…';
+                        let activated = false;
+                        try {
+                            const result = await fetch(`/api/admin/membresias/${encodeURIComponent(membership._id)}/activar`, { method: 'POST' });
+                            if (handleDenied(result)) return;
+                            const body = await result.json();
+                            status.textContent = body.message;
+                            activated = result.ok;
+                        } catch { status.textContent = 'No se pudo confirmar la activación. Actualiza la lista o vuelve a intentarlo; las fechas se conservan.'; }
+                        finally { controls(false); }
+                        if (activated) {
+                            await load();
+                            status.textContent = 'Membresía activada por un mes.';
+                            await loadMembership();
+                        }
+                    });
+                    card.append(activate);
+                }
+                list.append(card);
+            }
+            next = body.siguiente;
+            more.hidden = !next;
+            status.textContent = list.children.length ? `${list.children.length} ${list.children.length === 1 ? 'membresía mostrada' : 'membresías mostradas'}.` : 'No hay membresías en este estado.';
+        } catch { status.textContent = 'No se pudieron cargar las membresías. Intenta actualizar la lista.'; }
+        finally { controls(false); }
+    }
+    filter.addEventListener('change', () => load());
+    refresh.addEventListener('click', () => load());
+    more.addEventListener('click', () => load(true));
+    load();
 }

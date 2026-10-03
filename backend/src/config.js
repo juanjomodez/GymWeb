@@ -27,4 +27,6 @@ export const config = {
   database: process.env.MONGODB_DB?.trim() || 'GymWeb',
   host: process.env.HOST || '127.0.0.1',
   port,
+  environment: process.env.NODE_ENV || 'production',
+  demoPayments: process.env.ENABLE_DEMO_PAYMENTS === 'true',
 };

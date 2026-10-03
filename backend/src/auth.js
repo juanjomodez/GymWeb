@@ -5,6 +5,11 @@ const cookieName = 'gym_session';
 const duration = 8 * 60 * 60 * 1000;
 const tokenHash = token => createHash('sha256').update(token).digest('hex');
 
+export function requireAdmin(request, response, next) {
+  if (request.user.rol !== 'admin') return response.status(403).json({ message: 'Se requieren permisos de administrador.' });
+  next();
+}
+
 function readToken(request) {
   const value = (request.headers.cookie || '').split(';').map(part => part.trim()).find(part => part.startsWith(`${cookieName}=`))?.slice(cookieName.length + 1);
   return /^[a-f0-9]{64}$/.test(value || '') ? value : null;

@@ -902,6 +902,19 @@ footer p:last-of-type {
 }
 
 /* Carrito lateral */
+#productos-mas[hidden], .panel-carrito[hidden] { display: none; }
+
+#productos .tienda-controles {
+    margin: 20px 0;
+}
+
+#administracion-productos .cuenta-tarjetas img {
+    width: 100%;
+    max-height: 180px;
+    object-fit: contain;
+    margin-bottom: 15px;
+}
+
 .carrito-bloqueo-scroll {
     overflow: hidden;
 }
@@ -1367,4 +1380,58 @@ header nav a:not(:last-child):focus-visible::after {
     header nav a:not(:last-child)::after {
         transition: none;
     }
+}
+
+#administracion-membresias {
+    max-width: 1100px;
+    margin: 32px auto 0;
+    text-align: left;
+}
+
+#administracion-membresias[hidden], #admin-mas[hidden] { display: none; }
+.admin-controles { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin: 20px 0; }
+#admin-lista { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 20px; margin: 20px 0; }
+#mi-cuenta button, #mi-cuenta select {
+    padding: 10px 16px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    color: var(--text);
+    background: var(--surface);
+    font: inherit;
+}
+#mi-cuenta button { cursor: pointer; margin-bottom: 12px; }
+#mi-cuenta button:hover { border-color: var(--red); }
+#mi-cuenta button:disabled, #mi-cuenta select:disabled { opacity: .55; cursor: wait; }
+#admin-lista p { overflow-wrap: anywhere; }
+
+#mi-cuenta [hidden] { display: none; }
+#pago-simulado { margin: 18px 0; padding: 16px; border: 1px dashed var(--red); border-radius: 8px; }
+#pago-simulado h3 { margin-bottom: 10px; }
+#pago-simulado label { display: block; margin-bottom: 6px; }
+#pago-simulado select { width: 100%; margin-bottom: 12px; }
+.cuenta-seccion { max-width: 1100px; margin: 36px auto 0; text-align: left; scroll-margin-top: 100px; }
+.cuenta-tarjetas { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap: 20px; margin: 20px 0; }
+.cuenta-tarjetas article { min-width: 0; overflow-wrap: anywhere; }
+.cuenta-tarjetas button + button { margin-left: 8px; }
+.rutina-tabla { overflow-x: auto; margin: 16px 0; }
+.rutina-tabla table { width: 100%; border-collapse: collapse; text-align: left; }
+.rutina-tabla caption { text-align: left; font-weight: 600; margin-bottom: 8px; }
+.rutina-tabla th, .rutina-tabla td { padding: 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.rutina-tabla th { color: var(--muted); font-size: .85rem; }
+.rutina-editor { padding: 24px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); scroll-margin-top: 100px; }
+.rutina-editor h3, .rutina-editor h4 { margin: 12px 0; }
+.rutina-editor > label { display: block; margin: 14px 0 5px; }
+.rutina-editor input:not([type="checkbox"]), .rutina-editor textarea, .rutina-editor > select {
+    width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px;
+    color: var(--text); background: var(--bg); font: inherit;
+}
+.rutina-editor textarea { resize: vertical; }
+.rutina-checkbox input { margin-right: 8px; }
+.rutina-ejercicio { display: grid; grid-template-columns: 2fr 1fr 2fr 1fr; gap: 12px; padding: 16px; margin: 16px 0; border: 1px solid var(--line); border-radius: 8px; min-width: 0; }
+.rutina-ejercicio > div { min-width: 0; }
+.rutina-ejercicio label { display: block; margin-bottom: 5px; }
+.rutina-ejercicio button { grid-column: 1 / -1; justify-self: start; }
+@media (max-width: 650px) {
+    .rutina-ejercicio { grid-template-columns: 1fr; }
+    .rutina-editor { padding: 16px; }
 }
