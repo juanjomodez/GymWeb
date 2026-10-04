@@ -5,7 +5,34 @@ document.addEventListener("DOMContentLoaded", () => {
     setupMembershipActions();
     setupProductCart();
     setupAuthForms();
+    setupAccount();
+    updateAccountNavigation();
 });
+
+// Revalidar también al volver con Atrás desde la caché del navegador.
+window.addEventListener('pageshow', event => {
+    if (event.persisted) {
+        updateAccountNavigation();
+        if (document.querySelector('#cuenta-mensaje')) window.location.reload();
+    }
+});
+
+async function updateAccountNavigation() {
+    const link = document.querySelector('#enlace-cuenta');
+    if (!link) return;
+    try {
+        const response = await fetch('/api/me', { cache: 'no-store', credentials: 'same-origin' });
+        if (response.ok) {
+            link.href = 'micuenta.html';
+            link.textContent = 'Mi cuenta';
+        } else if (response.status === 401) {
+            link.href = 'login.html';
+            link.textContent = 'Iniciar sesión';
+        }
+    } catch {
+        // Un fallo de red no significa que la sesión se haya cerrado.
+    }
+}
 
 function setupScrollAnimations() {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
@@ -36,22 +63,64 @@ function createStatusMessage(parent, className = "mensaje-interfaz") {
     return message;
 }
 
-function setupMembershipActions() {
-    const planCards = document.querySelectorAll("#planes article");
-
-    planCards.forEach((card) => {
-        const planName = card.querySelector("h3")?.textContent.trim();
-        const priceBox = card.querySelector(".precio");
-        if (!planName || !priceBox) return;
-
-        const chooseLink = document.createElement("a");
-        chooseLink.className = "plan-accion";
-        chooseLink.href = `registro.html?plan=${encodeURIComponent(planName)}`;
-        chooseLink.textContent = "Elegir este plan";
-        priceBox.append(chooseLink);
-    });
+async function setupMembershipActions() {
+    const section = document.querySelector("#planes");
+    if (!section) return;
+    const feedback = createStatusMessage(section);
+    const container = section.querySelector(":scope > div");
+    // Las tarjetas estáticas siguen visibles si el backend no está disponible.
+    try {
+        const response = await fetch("/api/planes", { cache: "no-store" });
+        if (!response.ok) throw new Error();
+        const { planes } = await response.json();
+        container.replaceChildren();
+        const currency = new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 });
+        for (const plan of planes) {
+            const card = document.createElement("article");
+            const title = document.createElement("h3");
+            title.textContent = plan.nombre;
+            const description = document.createElement("p");
+            description.textContent = `Hasta ${plan.maxPersonas} ${plan.maxPersonas === 1 ? "persona" : "personas"}.`;
+            const list = document.createElement("ul");
+            for (const benefit of plan.beneficios) {
+                const item = document.createElement("li");
+                item.textContent = benefit;
+                list.append(item);
+            }
+            const priceBox = document.createElement("div");
+            priceBox.className = "precio";
+            const price = document.createElement("p");
+            price.className = "valor-precio";
+            price.textContent = `${currency.format(plan.precio)} / ${plan.periodo}`;
+            const choose = document.createElement("button");
+            choose.type = "button";
+            choose.className = "plan-accion";
+            choose.textContent = "Solicitar este plan";
+            choose.addEventListener("click", async () => {
+                choose.disabled = true;
+                feedback.textContent = "Enviando solicitud…";
+                try {
+                    const result = await fetch("/api/membresia", {
+                        method: "POST", headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ planId: plan._id })
+                    });
+                    if (result.status === 401) {
+                        window.location.assign(`login.html?plan=${encodeURIComponent(plan._id)}`);
+                        return;
+                    }
+                    const body = await result.json();
+                    feedback.textContent = body.message;
+                    if (result.ok || result.status === 409) window.location.assign("micuenta.html");
+                } catch { feedback.textContent = "No se pudo enviar la solicitud. Intenta nuevamente."; }
+                finally { choose.disabled = false; }
+            });
+            priceBox.append(price, choose);
+            card.append(title, description, list, priceBox);
+            container.append(card);
+        }
+        feedback.textContent = planes.length ? "Las solicitudes quedan pendientes de activación. No se realiza ningún cobro." : "No hay planes disponibles.";
+    } catch { feedback.textContent = "No se pudieron cargar los planes. Abre la web desde http://127.0.0.1:3000 y comprueba el backend."; }
 }
-
 function setupProductCart() {
     const productSection = document.querySelector("#productos");
     if (!productSection) return;
@@ -242,6 +311,11 @@ function setupAuthForms() {
     const password = form.querySelector("#password");
     const confirmation = form.querySelector("#confirmar-password");
     const registration = Boolean(confirmation);
+    const selectedPlanId = new URLSearchParams(window.location.search).get('plan');
+    if (selectedPlanId) {
+        const alternate = card.querySelector(registration ? 'a[href="login.html"]' : 'a[href="registro.html"]');
+        if (alternate) alternate.href += `?plan=${encodeURIComponent(selectedPlanId)}`;
+    }
 
     if (registration) {
         const selectedPlan = new URLSearchParams(window.location.search).get("plan");
@@ -260,13 +334,121 @@ function setupAuthForms() {
         confirmation.addEventListener("input", validatePasswords);
     }
 
-    form.addEventListener("submit", (event) => {
+    form.addEventListener("submit", async (event) => {
         event.preventDefault();
         if (!form.reportValidity()) return;
 
         feedback.classList.add("mensaje-visible");
-        feedback.textContent = registration
-            ? "aun falta eso"
-            : "aun falta eso";
+        if (window.location.protocol === "file:") {
+            feedback.textContent = "Abre esta página desde http://127.0.0.1:3000 para continuar.";
+            return;
+        }
+        const button = form.querySelector('button[type="submit"]');
+        if (button.disabled) return;
+        button.disabled = true;
+        feedback.textContent = registration ? "Creando tu cuenta…" : "Iniciando sesión…";
+        try {
+            const response = await fetch(registration ? "/api/usuarios" : "/api/login", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    ...(registration ? { nombre: form.querySelector("#nombre").value } : {}),
+                    correo: form.querySelector("#correo").value,
+                    password: password.value
+                })
+            });
+            const result = await response.json();
+            feedback.textContent = result.message || "No se pudo completar el registro.";
+            if (response.ok) {
+                if (!registration) {
+                    const plan = new URLSearchParams(window.location.search).get('plan');
+                    window.location.assign(plan ? `micuenta.html?plan=${encodeURIComponent(plan)}` : 'micuenta.html');
+                    return;
+                }
+                form.reset();
+                confirmation.setCustomValidity("");
+                feedback.textContent = "Cuenta creada correctamente. Ya puedes iniciar sesión.";
+            }
+        } catch {
+            feedback.textContent = "No se pudo contactar con el servidor. Comprueba que el backend esté activo.";
+        } finally {
+            button.disabled = false;
+        }
     });
+}
+
+async function setupAccount() {
+    const message = document.querySelector("#cuenta-mensaje");
+    if (!message) return;
+    const button = document.querySelector("#cerrar-sesion");
+    try {
+        const response = await fetch("/api/me", { cache: "no-store" });
+        if (response.status === 401) { window.location.replace("login.html"); return; }
+        if (!response.ok) throw new Error();
+        const { usuario } = await response.json();
+        document.querySelector("#cuenta-nombre").textContent = usuario.nombre;
+        document.querySelector("#cuenta-correo").textContent = usuario.correo;
+        await loadMembership();
+    } catch { message.textContent = "No se pudo cargar tu cuenta. Intenta recargar la página."; }
+    button.addEventListener("click", async () => {
+        button.disabled = true;
+        try {
+            const response = await fetch("/api/logout", { method: "POST" });
+            if (!response.ok) throw new Error();
+            window.location.replace("login.html");
+        } catch {
+            message.textContent = "No se pudo cerrar sesión. Intenta nuevamente.";
+            button.disabled = false;
+        }
+    });
+}
+
+async function loadMembership() {
+    const target = document.querySelector('#cuenta-membresia');
+    try {
+        const response = await fetch('/api/membresia', { cache: 'no-store' });
+        if (!response.ok) throw new Error();
+        const { membresia } = await response.json();
+        target.replaceChildren();
+        if (membresia) {
+            const date = value => value ? new Date(value).toLocaleDateString('es-CO') : 'Pendiente de activación';
+            for (const text of [
+                `Plan: ${membresia.planNombre}`,
+                `Precio: ${new Intl.NumberFormat('es-CO', { style: 'currency', currency: membresia.moneda }).format(membresia.precio)} / ${membresia.periodo}`,
+                `Estado: ${membresia.estado}`,
+                `Solicitud: ${date(membresia.solicitadaEn)}`,
+                `Inicio: ${date(membresia.inicio)}`,
+                `Fin: ${date(membresia.fin)}`
+            ]) {
+                const line = document.createElement('p');
+                line.textContent = text;
+                target.append(line);
+            }
+        } else {
+            target.textContent = 'Aún no has solicitado una membresía.';
+            const planId = new URLSearchParams(window.location.search).get('plan');
+            if (!planId) return;
+            const catalog = await fetch('/api/planes');
+            if (!catalog.ok) throw new Error();
+            const plan = (await catalog.json()).planes.find(item => item._id === planId);
+            if (!plan) return;
+            const confirm = document.createElement('button');
+            confirm.type = 'button';
+            confirm.textContent = `Confirmar solicitud: ${plan.nombre}`;
+            const note = document.createElement('p');
+            note.textContent = 'La membresía quedará pendiente de activación. No se realiza ningún cobro.';
+            target.append(note, confirm);
+            confirm.addEventListener('click', async () => {
+                confirm.disabled = true;
+                try {
+                    const result = await fetch('/api/membresia', {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ planId })
+                    });
+                    if (result.ok || result.status === 409) { await loadMembership(); return; }
+                    note.textContent = (await result.json()).message;
+                } catch { note.textContent = 'No se pudo enviar la solicitud.'; }
+                finally { confirm.disabled = false; }
+            });
+        }
+    } catch { target.textContent = 'No se pudo cargar la membresía. Recarga para intentar nuevamente.'; }
 }

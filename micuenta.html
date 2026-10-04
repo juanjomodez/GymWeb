@@ -28,20 +28,22 @@
 
                 <article>
                     <h2>Información personal</h2>
-                    <p>Nombre: Usuario GymFlow</p>
-                    <p>Correo: usuario@gymflow.com</p>
+                    <p>Nombre: <span id="cuenta-nombre">Cargando…</span></p>
+                    <p>Correo: <span id="cuenta-correo">Cargando…</span></p>
+                    <button type="button" id="cerrar-sesion">Cerrar sesión</button>
+                    <p id="cuenta-mensaje" role="status" aria-live="polite"></p>
                 </article>
 
                 <article>
                     <h2>Mi membresía</h2>
-                    <p>Plan: Premium</p>
-                    <p>Estado: Activa</p>
-                    <p>Tiempo restante: 23 días</p>
+                    <div id="cuenta-membresia" aria-live="polite">Cargando membresía…</div>
+                    <a href="index.html#planes">Ver planes</a>
                 </article>
 
             </div>
         </section>
     </main>
+    <script src="web.js" defer></script>
 </body>
 
 </html>

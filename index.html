@@ -5,11 +5,54 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GymFlow</title>
+    <meta name="description" content="GymFlow: recorre el gimnasio en 3D, conoce sus máquinas, los músculos que trabajan y elige tu plan.">
 
+    <script>
+        // Activa el diseño 3D solo si hay WebGL2 y el usuario no pidió ahorrar datos.
+        (function () {
+            try {
+                var gl = document.createElement("canvas").getContext("webgl2");
+                var ahorro = navigator.connection && navigator.connection.saveData;
+                if (gl && !ahorro) document.documentElement.classList.add("con-3d");
+            } catch (e) { }
+        })();
+    </script>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+            }
+        }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&display=swap">
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="experiencia.css">
 </head>
 
 <body>
+    <canvas id="escena-3d" aria-hidden="true"></canvas>
+    <canvas id="vitrina-3d" aria-hidden="true"></canvas>
+    <div class="cargador" aria-hidden="true">
+        <img src="img/logo.png" alt="">
+        <span class="cargador-barra"></span>
+        <p class="cargador-texto">Preparando el gimnasio</p>
+    </div>
+
+    <nav class="indice" aria-label="Secciones de la página">
+        <a href="#inicio" data-seccion="inicio"><span>Inicio</span></a>
+        <a href="#planes" data-seccion="planes"><span>Planes</span></a>
+        <a href="#recorrido" data-seccion="recorrido"><span>Recorrido</span></a>
+        <a href="#entrenadores" data-seccion="entrenadores"><span>Equipo</span></a>
+        <a href="#rutinas" data-seccion="rutinas"><span>Rutinas</span></a>
+        <a href="#productos" data-seccion="productos"><span>Tienda</span></a>
+        <a href="#contacto" data-seccion="contacto"><span>Contacto</span></a>
+        <button type="button" class="indice-mapa" data-abrir-mapa aria-label="Abrir mapa del gimnasio">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2Zm0 0v14m6-12v14"></path></svg>
+        </button>
+    </nav>
 
     <!-- HEADER -->
     <header>
@@ -20,11 +63,12 @@
         <nav>
             <a href="#inicio">Inicio</a>
             <a href="#planes">Planes</a>
+            <a href="#recorrido">Recorrido</a>
             <a href="#entrenadores">Entrenadores</a>
             <a href="#rutinas">Rutinas</a>
             <a href="#productos">Productos</a>
             <a href="#contacto">Contacto</a>
-            <a href="login.html">Iniciar sesión</a>
+            <a href="login.html" id="enlace-cuenta">Iniciar sesión</a>
         </nav>
     </header>
 
@@ -33,15 +77,25 @@
         <!-- MAIN -->
         <section id="inicio">
             <div>
-                <h1>Entrena. Mejora. Supera tus limites.</h1>
+                <p class="kicker">GYMFLOW · CALI</p>
+                <h1>Entrena. Mejora. Supera tus límites.</h1>
                 <p>En GymFlow encontrarás todo lo necesario para alcanzar tus objetivos y mejorar tu rendimiento.</p>
-                <a href="#planes">Ver planes</a>
+                <div class="acciones-inicio">
+                    <a href="#planes">Ver planes</a>
+                    <a href="#recorrido" class="boton-secundario">Recorrer el gimnasio</a>
+                </div>
             </div>
+
+            <p class="pista-scroll" aria-hidden="true"><span></span>Desliza para entrar</p>
 
             <div>
                 <img src="img/maingym.png" alt="Personas entrenando en el gimnasio">
             </div>
         </section>
+
+        <div class="intro-escena" id="intro-planes" aria-hidden="true">
+            <div class="intro-rotulo"><p class="kicker">Membresías</p><p>Tres formas de entrenar con nosotros.</p></div>
+        </div>
 
         <!-- PLANES -->
         <section id="planes">
@@ -65,7 +119,7 @@
                     </div>
                 </article>
 
-                <article>
+                <article class="plan-destacado">
                     <h3>Plan Familiar</h3>
                     <p>Una opción para entrenar y disfrutar del gimnasio junto a otras personas.</p>
 
@@ -103,6 +157,33 @@
             </div>
         </section>
 
+        <!-- RECORRIDO 3D -->
+        <section id="recorrido" aria-labelledby="recorrido-titulo">
+            <div class="recorrido-fijo">
+                <div class="recorrido-info">
+                    <p class="kicker">RECORRIDO 3D</p>
+                    <h2 id="recorrido-titulo">Conoce el gimnasio</h2>
+                    <div class="recorrido-tabs" role="tablist" aria-label="Zonas del gimnasio"></div>
+                    <div class="recorrido-area" id="recorrido-panel" role="tabpanel">
+                        <p class="recorrido-contador"></p>
+                        <h3 id="area-titulo"></h3>
+                        <p id="area-texto"></p>
+                        <ul class="recorrido-maquinas"></ul>
+                    </div>
+                    <button type="button" class="boton-mapa" data-abrir-mapa>
+                        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2Zm0 0v14m6-12v14"></path></svg>
+                        Ver mapa del gimnasio
+                    </button>
+                    <p class="recorrido-ayuda">Sigue deslizando para cambiar de zona. Toca una máquina para ver el ejercicio y los músculos que trabaja.</p>
+                </div>
+                <div class="recorrido-puntos"></div>
+            </div>
+        </section>
+
+        <div class="intro-escena" id="intro-entrenadores" aria-hidden="true">
+            <div class="intro-rotulo"><p class="kicker">Nuestro equipo</p><p>Entrenadores que te acompañan en cada zona.</p></div>
+        </div>
+
         <!-- ENTRENADORES -->
         <section id="entrenadores">
             <h2>Nuestros entrenadores</h2>
@@ -115,6 +196,7 @@
                     <h3>Carlos Rodríguez</h3>
                     <p>Fuerza y rendimiento</p>
                     <p>Especializado en aumento de fuerza, levantamiento de peso y mejora del rendimiento físico.</p>
+                    <span class="zona-entrenador">Zona de peso libre</span>
                 </article>
 
                 <article>
@@ -122,6 +204,7 @@
                     <h3>Laura Martínez</h3>
                     <p>Entrenamiento funcional</p>
                     <p>Enfocada en movilidad, resistencia, coordinación y ejercicios funcionales.</p>
+                    <span class="zona-entrenador">Zona funcional</span>
                 </article>
 
                 <article>
@@ -129,6 +212,7 @@
                     <h3>Andrés Gómez</h3>
                     <p>Hipertrofia y musculación</p>
                     <p>Especializado en desarrollo muscular y planificación de rutinas para ganar masa muscular.</p>
+                    <span class="zona-entrenador">Máquinas guiadas</span>
                 </article>
 
                 <article>
@@ -136,6 +220,7 @@
                     <h3>Valentina Torres</h3>
                     <p>Pérdida de grasa y acondicionamiento</p>
                     <p>Enfocada en entrenamiento cardiovascular, quema de grasa y mejora de la condición física.</p>
+                    <span class="zona-entrenador">Zona de cardio</span>
                 </article>
 
                 <article>
@@ -144,6 +229,7 @@
                     <p>Entrenamiento deportivo</p>
                     <p>Especializado en preparación física, velocidad, potencia y rendimiento para diferentes deportes.
                     </p>
+                    <span class="zona-entrenador">Zona funcional</span>
                 </article>
             </div>
         </section>
@@ -157,22 +243,26 @@
                     <span class="etiqueta-rutina">FUERZA</span>
                     <h3>Base de fuerza</h3>
                     <p>Una rutina general para trabajar los principales grupos musculares y construir una base sólida.</p>
-                    <a href="login.html">Ver en mi cuenta</a>
+                    <a href="micuenta.html">Ver en mi cuenta</a>
                 </article>
                 <article>
                     <span class="etiqueta-rutina">ACONDICIONAMIENTO</span>
                     <h3>Resistencia y movilidad</h3>
                     <p>Sesiones enfocadas en movimiento, resistencia y acondicionamiento físico general.</p>
-                    <a href="login.html">Ver en mi cuenta</a>
+                    <a href="micuenta.html">Ver en mi cuenta</a>
                 </article>
                 <article>
                     <span class="etiqueta-rutina">HIPERTROFIA</span>
                     <h3>Construcción muscular</h3>
                     <p>Una guía de entrenamiento organizada para apoyar tus objetivos de desarrollo muscular.</p>
-                    <a href="login.html">Ver en mi cuenta</a>
+                    <a href="micuenta.html">Ver en mi cuenta</a>
                 </article>
             </div>
         </section>
+
+        <div class="intro-escena" id="intro-productos" aria-hidden="true">
+            <div class="intro-rotulo"><p class="kicker">GymFlow Store</p><p>Suplementos y accesorios en la misma sede.</p></div>
+        </div>
 
         <!-- PRODUCTOS -->
         <section id="productos">
@@ -180,6 +270,7 @@
             <p>Encuentra productos para complementar tu entrenamiento.</p>
             <div>
                 <article>
+                    <div class="producto-3d" data-producto="proteina" aria-hidden="true"></div>
                     <img src="img/proteina.jpg" alt="Proteína">
                     <h3>Proteína</h3>
                     <p>Suplemento para complementar tu alimentación.</p>
@@ -188,6 +279,7 @@
                 </article>
 
                 <article>
+                    <div class="producto-3d" data-producto="creatina" aria-hidden="true"></div>
                     <img src="img/creatina.jpg" alt="Creatina">
                     <h3>Creatina</h3>
                     <p>Complemento para mejorar el rendimiento deportivo.</p>
@@ -196,6 +288,7 @@
                 </article>
 
                 <article>
+                    <div class="producto-3d" data-producto="shaker" aria-hidden="true"></div>
                     <img src="img/shaker.jpg" alt="Shaker">
                     <h3>Shaker</h3>
                     <p>Shaker para preparar tus bebidas y suplementos.</p>
@@ -213,9 +306,57 @@
             <p class="dato-contacto">Teléfono: +57 300 000 0000</p>
             <p class="dato-contacto">Email: contacto@gymflow.com</p>
             <p class="dato-contacto">Ubicación: Cali, Colombia</p>
+            <a class="contacto-cta" href="registro.html">Inscribirme ahora</a>
         </section>
 
     </main>
+
+    <!-- VISTA CENITAL -->
+    <div class="mapa-ui" role="dialog" aria-modal="true" aria-labelledby="mapa-titulo" hidden>
+        <div class="mapa-panel">
+            <p class="kicker">Vista cenital</p>
+            <h2 id="mapa-titulo">Mapa del gimnasio</h2>
+            <p>Elige una zona para bajar hasta ella o toca un equipo para ver su ejercicio.</p>
+            <button class="mapa-cerrar" type="button">Volver al recorrido</button>
+        </div>
+        <div class="mapa-etiquetas"></div>
+    </div>
+
+    <!-- FICHA DE MÁQUINA -->
+    <div class="ficha-fondo" aria-hidden="true"></div>
+    <aside class="ficha" id="ficha-maquina" role="dialog" aria-modal="true" aria-labelledby="ficha-titulo" hidden>
+        <button class="ficha-cerrar" type="button" aria-label="Cerrar ficha">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m7 7 10 10M17 7 7 17"></path></svg>
+        </button>
+        <p class="ficha-area"></p>
+        <h2 id="ficha-titulo"></h2>
+        <p class="ficha-ejercicio"></p>
+
+        <div class="ficha-visor">
+            <canvas id="visor-anatomia" aria-label="Modelo anatómico con los músculos que trabaja el ejercicio" role="img"></canvas>
+            <div class="visor-botones">
+                <button type="button" data-lado="frente">Frente</button>
+                <button type="button" data-lado="espalda">Espalda</button>
+            </div>
+            <p class="visor-ayuda">Arrastra para girar</p>
+        </div>
+
+        <div class="ficha-musculos">
+            <div>
+                <h3>Músculos principales</h3>
+                <ul class="chips-principales"></ul>
+            </div>
+            <div>
+                <h3>Secundarios</h3>
+                <ul class="chips-secundarios"></ul>
+            </div>
+        </div>
+
+        <p class="ficha-descripcion"></p>
+        <h3>Cómo hacerlo</h3>
+        <ol class="ficha-pasos"></ol>
+        <a class="ficha-cta" href="registro.html">Quiero entrenar aquí</a>
+    </aside>
 
     <!-- FOOTER -->
     <footer>
@@ -228,6 +369,7 @@
         <p>© 2026 GymFlow. Todos los derechos reservados.</p>
     </footer>
     <script src="web.js" defer></script>
+    <script type="module" src="js/principal.js"></script>
 </body>
 
 </html>
