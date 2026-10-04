@@ -8,6 +8,9 @@ import { setupAdministration } from './memberships.js';
 import { setupRoutines } from './routines.js';
 import { setupSimulatedPayments } from './simulated-payments.js';
 import { setupProducts } from './products.js';
+import { setupOrders } from './orders.js';
+import { setupTraining } from './training.js';
+import { setupFamilyRenewals } from './family-renewals.js';
 
 const frontend = fileURLToPath(new URL('../../', import.meta.url));
 
@@ -21,10 +24,13 @@ export function createApp(database, { now = () => new Date(), environment = 'pro
   setupRoutines(app, database, requireUser, now);
   setupSimulatedPayments(app, database, requireUser, now, { environment, demoPayments });
   setupProducts(app, database, requireUser, now);
+  setupOrders(app, database, requireUser, now, { environment, demoPayments });
+  setupTraining(app, database, requireUser, now);
+  setupFamilyRenewals(app, database, requireUser, now, { environment, demoPayments });
   app.get('/micuenta.html', requireUser, (_req, res) => res.sendFile(path.join(frontend, 'micuenta.html'), { dotfiles: 'allow' }));
 
   // Lista explícita: nunca servir backend/, .env ni archivos internos.
-  for (const file of ['index.html', 'registro.html', 'login.html', 'style.css', 'web.js', 'rutinas.js', 'productos.js']) {
+  for (const file of ['index.html', 'registro.html', 'login.html', 'style.css', 'web.js', 'rutinas.js', 'productos.js', 'pedidos.js', 'entrenadores.js', 'familia.js']) {
     app.get(`/${file}`, (_req, res) => res.sendFile(path.join(frontend, file), { dotfiles: 'allow' }));
   }
   app.get('/', (_req, res) => res.sendFile(path.join(frontend, 'index.html'), { dotfiles: 'allow' }));

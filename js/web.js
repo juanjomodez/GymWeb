@@ -147,9 +147,13 @@ function setupAuthForms() {
     const confirmation = form.querySelector("#confirmar-password");
     const registration = Boolean(confirmation);
     const selectedPlanId = new URLSearchParams(window.location.search).get('plan');
-    if (selectedPlanId) {
+    const returnToStore = new URLSearchParams(window.location.search).get('volver') === 'tienda';
+    if (selectedPlanId || returnToStore) {
         const alternate = card.querySelector(registration ? 'a[href="login.html"]' : 'a[href="registro.html"]');
-        if (alternate) alternate.href += `?plan=${encodeURIComponent(selectedPlanId)}`;
+        const query = new URLSearchParams();
+        if (selectedPlanId) query.set('plan', selectedPlanId);
+        if (returnToStore) query.set('volver', 'tienda');
+        if (alternate) alternate.href += '?' + query;
     }
 
     if (registration) {
@@ -197,7 +201,7 @@ function setupAuthForms() {
             if (response.ok) {
                 if (!registration) {
                     const plan = new URLSearchParams(window.location.search).get('plan');
-                    window.location.assign(plan ? `micuenta.html?plan=${encodeURIComponent(plan)}` : 'micuenta.html');
+                    window.location.assign(plan ? `micuenta.html?plan=${encodeURIComponent(plan)}` : returnToStore ? 'index.html#productos' : 'micuenta.html');
                     return;
                 }
                 form.reset();
@@ -228,6 +232,9 @@ async function setupAccount() {
         if (usuario.rol === 'admin') setupMembershipAdministration();
         setupRoutines(usuario);
         setupProductAdministration(usuario);
+        setupOrdersAccount();
+        setupTrainingAccount(usuario);
+        setupFamilyRenewalsAccount(usuario);
     } catch { message.textContent = "No se pudo cargar tu cuenta. Intenta recargar la página."; }
     button.addEventListener("click", async () => {
         button.disabled = true;
@@ -247,6 +254,7 @@ let membershipExpiryTimer;
 let membershipLoadGeneration = 0;
 let demoPaymentsEnabled = false;
 let demoPaymentBusy = false;
+let membershipSnapshot = null;
 const membershipDate = value => value ? new Intl.DateTimeFormat('es-CO', {
     timeZone: 'America/Bogota', dateStyle: 'medium', timeStyle: 'short'
 }).format(new Date(value)) + ' (Bogotá)' : 'Pendiente de activación';
@@ -261,6 +269,7 @@ async function loadMembership() {
         if (!response.ok) throw new Error();
         const { membresia } = await response.json();
         if (generation !== membershipLoadGeneration) return;
+        membershipSnapshot = membresia;
         document.querySelector('#pago-simulado').hidden = !demoPaymentsEnabled || membresia?.estado !== 'pendiente';
         target.replaceChildren();
         if (membresia) {
@@ -283,13 +292,16 @@ async function loadMembership() {
                 receipt.textContent = `Último pago simulado: ${payment.resultado} · ${new Intl.NumberFormat('es-CO', { style: 'currency', currency: payment.moneda }).format(payment.monto)} · ${membershipDate(payment.registradaEn)}. Sin cobro real.`;
                 target.append(receipt);
             }
+            if (membresia.tipoAcceso === 'beneficiario') {
+                const note = document.createElement('p'); note.textContent = `Acceso por el grupo familiar de ${membresia.titularNombre}. El titular gestiona la renovación.`; target.append(note);
+            }
             if (membresia.accesoActivo) {
                 membershipExpiryTimer = window.setTimeout(loadMembership,
                     Math.min(2147483647, Math.max(1000, new Date(membresia.fin).getTime() - Date.now() + 50)));
             }
             if (membresia.estado === 'vencida') {
                 const note = document.createElement('p');
-                note.textContent = 'Tu membresía venció. La renovación todavía no está disponible.';
+                note.textContent = membresia.tipoAcceso === 'beneficiario' ? 'El grupo familiar venció. Tu acceso se restablece cuando el titular renueve.' : 'Tu membresía venció. Puedes solicitar otro mes en Renovar membresía.';
                 target.append(note);
             }
         } else {
@@ -320,6 +332,7 @@ async function loadMembership() {
         }
     } catch {
         if (generation === membershipLoadGeneration) {
+            membershipSnapshot = null;
             target.textContent = 'No se pudo cargar la membresía. Recarga para intentar nuevamente.';
             document.querySelector('#pago-simulado').hidden = true;
         }

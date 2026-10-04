@@ -9,6 +9,7 @@
     "start:demo": "node scripts/start-demo.js",
     "dev": "node --watch src/server.js",
     "test": "node --test",
+    "diagnose:db": "node scripts/diagnose-database.js",
     "verify:atlas": "node scripts/verify-registration.js",
     "admin:prepare": "node scripts/prepare-admin.js"
   },

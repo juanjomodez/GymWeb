@@ -25,7 +25,7 @@ export function publicMembership(value, now) {
   const { _id, planId, planNombre, precio, moneda, periodo, maxPersonas, estado, solicitadaEn, inicio, fin } = value;
   // El acceso nunca depende solo de una etiqueta que pudiera quedar desactualizada.
   const accesoActivo = estado === 'activa' && inicio instanceof Date && fin instanceof Date && inicio <= now && fin > now;
-  return { _id, planId, planNombre, precio, moneda, periodo, maxPersonas, estado, solicitadaEn, inicio, fin, accesoActivo, pagoSimulado: publicSimulatedPayment(value.pagoSimulado) };
+  return { _id, planId, planNombre, precio, moneda, periodo, maxPersonas, estado, solicitadaEn, inicio, fin, accesoActivo, tipoAcceso: value.tipoAcceso || 'titular', ...(value.tipoAcceso === 'beneficiario' ? { titularNombre: value.titularNombre } : {}), pagoSimulado: publicSimulatedPayment(value.pagoSimulado) };
 }
 
 export function setupAdministration(app, database, requireUser, now) {

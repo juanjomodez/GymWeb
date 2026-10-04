@@ -42,8 +42,8 @@ export function setupRoutines(app, database, requireUser, now) {
     } catch { res.status(503).json({ message: 'No se pudo comprobar el acceso a las rutinas.' }); }
   }
   // Volver a comprobar antes de responder si la DB tardó hasta el vencimiento.
-  function accessValid(req, res) {
-    if (req.routineAccessUntil > now()) return true;
+  async function accessValid(req, res) {
+    if (req.routineAccessUntil > now() && publicMembership(await database.findMembership(req.user.id, now()), now())?.accesoActivo) return true;
     res.status(403).json({ message: 'Tu membresía venció. El acceso a rutinas ya no está habilitado.' });
     return false;
   }
@@ -62,14 +62,14 @@ export function setupRoutines(app, database, requireUser, now) {
     if (!filter) return res.status(400).json({ message: 'Filtro de rutinas inválido.' });
     try {
       const rows = await database.listRoutines(filter);
-      if (accessValid(req, res)) res.json({ ...page(rows, false), accesoHasta: req.routineAccessUntil });
+      if (await accessValid(req, res)) res.json({ ...page(rows, false), accesoHasta: req.routineAccessUntil });
     } catch { res.status(503).json({ message: 'No se pudieron cargar las rutinas.' }); }
   });
   app.get('/api/rutinas/:id', requireUser, requireMembership, async (req, res) => {
     if (!validId(req.params.id)) return res.status(400).json({ message: 'Rutina inválida.' });
     try {
       const routine = await database.findRoutine(req.params.id, true);
-      if (!accessValid(req, res)) return;
+      if (!await accessValid(req, res)) return;
       if (!routine) return res.status(404).json({ message: 'La rutina no está disponible.' });
       res.json({ rutina: publicRoutine(routine), accesoHasta: req.routineAccessUntil });
     } catch { res.status(503).json({ message: 'No se pudo cargar la rutina.' }); }

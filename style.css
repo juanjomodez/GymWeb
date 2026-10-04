@@ -355,24 +355,16 @@ header nav a:last-child:hover {
 /* Equipo */
 #entrenadores>div {
     display: grid;
-    grid-template-columns: repeat(6, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
     gap: 20px;
     max-width: 1200px;
     margin: 0 auto;
 }
 
 #entrenadores article {
-    grid-column: span 2;
+    grid-column: auto;
     overflow: hidden;
     padding: 0 0 24px;
-}
-
-#entrenadores article:nth-child(4) {
-    grid-column: 2 / span 2;
-}
-
-#entrenadores article:nth-child(5) {
-    grid-column: 4 / span 2;
 }
 
 #entrenadores article img {
@@ -903,6 +895,11 @@ footer p:last-of-type {
 
 /* Carrito lateral */
 #productos-mas[hidden], .panel-carrito[hidden] { display: none; }
+.carrito-crear { margin-top: 10px; }
+.pedido-tarjeta h3 { overflow-wrap: anywhere; }
+.pedido-tarjeta ul { margin: 15px 0; padding-left: 20px; }
+.pedido-tarjeta label { display: block; margin: 15px 0 6px; }
+.pedido-tarjeta select { width: 100%; padding: 10px; margin-bottom: 10px; color: var(--text); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; }
 
 #productos .tienda-controles {
     margin: 20px 0;
@@ -1405,6 +1402,16 @@ header nav a:not(:last-child):focus-visible::after {
 #admin-lista p { overflow-wrap: anywhere; }
 
 #mi-cuenta [hidden] { display: none; }
+#entrenadores [hidden] { display: none; }
+#entrenadores button, #entrenadores article a { display: inline-block; padding: 10px 16px; color: var(--text); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; font: inherit; cursor: pointer; }
+#entrenadores article a { margin: 12px 22px 0; }
+.entrenador-admin-tarjeta img { width: 100%; height: 220px; object-fit: cover; border-radius: 8px; }
+.chat-mensajes { max-height: 440px; overflow-y: auto; display: grid; gap: 12px; margin: 18px 0; }
+#mi-cuenta .chat-mensaje { padding: 16px; margin: 0; }
+.chat-autor { color: var(--muted); font-size: .85rem; }
+.chat-texto { white-space: pre-wrap; overflow-wrap: anywhere; }
+#entrenador-vinculo label { display: block; margin: 12px 0 5px; }
+#horario-formulario { margin-top: 24px; }
 #pago-simulado { margin: 18px 0; padding: 16px; border: 1px dashed var(--red); border-radius: 8px; }
 #pago-simulado h3 { margin-bottom: 10px; }
 #pago-simulado label { display: block; margin-bottom: 6px; }

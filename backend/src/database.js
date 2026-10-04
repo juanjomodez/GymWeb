@@ -1,6 +1,9 @@
 import { MongoClient, ObjectId } from 'mongodb';
 import { initialPlans } from './plans.js';
 import { initialProducts } from './products.js';
+import { orderError, orderIntent } from './orders.js';
+import { createTrainingDatabase } from './training-database.js';
+import { createFamilyRenewalsDatabase } from './family-renewals-database.js';
 
 export function createDatabase({ uri, database }, { clientFactory = (connection, options) => new MongoClient(connection, options) } = {}) {
   let client;
@@ -11,6 +14,29 @@ export function createDatabase({ uri, database }, { clientFactory = (connection,
   let routineIndexes;
   let productsReady;
   let productIndexes;
+  let orderIndexes;
+  async function ensureOrders() {
+    const orders = getDb().collection('pedidos');
+    orderIndexes ??= Promise.all([
+      orders.createIndex({ userId: 1, clave: 1 }, { unique: true }),
+      orders.createIndex({ userId: 1, estado: 1, _id: 1 }),
+    ]).catch(error => { orderIndexes = undefined; throw error; });
+    await orderIndexes;
+  }
+  async function transaction(task) {
+    getDb();
+    const session = client.startSession();
+    try {
+      return await session.withTransaction(() => task(session), {
+        readConcern: { level: 'snapshot' }, writeConcern: { w: 'majority' }, readPreference: 'primary',
+        maxCommitTimeMS: 5000, timeoutMS: 15000,
+      });
+    } finally { await session.endSession(); }
+  }
+  function existingOrder(order, items) {
+    if (orderIntent(order.items) !== orderIntent(items)) throw orderError(409, 'Esta clave ya pertenece a un pedido con otros productos o cantidades. Recupera el intento anterior antes de iniciar otro.');
+    return { order, created: false };
+  }
   async function ensureProducts() {
     productsReady ??= getDb().collection('productos').bulkWrite(initialProducts.map(({ _id, ...product }) => ({
       updateOne: { filter: { _id: new ObjectId(_id) }, update: { $setOnInsert: { ...product, creadaEn: new Date(), actualizadaEn: new Date(), creadaPor: 'catalogo-inicial', actualizadaPor: 'catalogo-inicial' } }, upsert: true },
@@ -31,7 +57,77 @@ export function createDatabase({ uri, database }, { clientFactory = (connection,
     });
     return client.db(database);
   }
+  const familyRenewals = createFamilyRenewalsDatabase(getDb, transaction, ensurePlans);
   return {
+    ...familyRenewals,
+    ...createTrainingDatabase(getDb, transaction, familyRenewals.resolveMembershipAccess),
+    async listOrders(userId, { despues, estado, limit }) {
+      await ensureOrders();
+      return getDb().collection('pedidos').find({ userId, ...(estado ? { estado } : {}), ...(despues ? { _id: { $gt: new ObjectId(despues) } } : {}) }).sort({ _id: 1 }).limit(limit).toArray();
+    },
+    async findOrder(id, userId) {
+      return getDb().collection('pedidos').findOne({ _id: new ObjectId(id), userId });
+    },
+    async createOrder(userId, clave, input, instant) {
+      await ensureOrders();
+      const orders = getDb().collection('pedidos');
+      const previous = await orders.findOne({ userId, clave });
+      if (previous) return existingOrder(previous, input);
+      await ensureProducts();
+      const id = new ObjectId();
+      try {
+        return await transaction(async session => {
+          const previous = await orders.findOne({ userId, clave }, { session });
+          if (previous) return existingOrder(previous, input);
+          const items = [];
+          for (const item of [...input].sort((a, b) => a.productoId.localeCompare(b.productoId))) {
+            const product = await getDb().collection('productos').findOne({ _id: new ObjectId(item.productoId), disponible: true }, { session });
+            if (!product || !Number.isInteger(product.stock) || product.stock < item.cantidad) throw orderError(409, 'Un producto fue retirado o no tiene suficientes existencias. Actualiza el carrito antes de crear el pedido.');
+            if (!Number.isSafeInteger(product.precio) || product.precio < 1 || product.precio > 100000000 || product.moneda !== 'COP') throw new Error('Condiciones de producto inválidas');
+            items.push({ productoId: item.productoId, nombre: product.nombre, imagen: product.imagen, precioUnitario: product.precio, cantidad: item.cantidad, subtotal: product.precio * item.cantidad });
+          }
+          const order = { _id: id, userId, clave, tipo: 'simulado', estado: 'pendiente', items, total: items.reduce((total, item) => total + item.subtotal, 0), moneda: 'COP', creadoEn: instant, actualizadoEn: instant, pagoSimulado: null };
+          await orders.insertOne(order, { session });
+          return { order, created: true };
+        });
+      } catch (error) {
+        if (error.code === 11000) {
+          const previous = await orders.findOne({ userId, clave });
+          if (previous) return existingOrder(previous, input);
+        }
+        throw error;
+      }
+    },
+    async simulateOrderPayment(id, userId, resultado, instant) {
+      await ensureOrders();
+      return transaction(async session => {
+        const orders = getDb().collection('pedidos');
+        const filter = { _id: new ObjectId(id), userId };
+        const order = await orders.findOne(filter, { session });
+        if (!order) throw orderError(404, 'No existe ese pedido en tu cuenta.');
+        if (order.tipo !== 'simulado') throw orderError(409, 'Solo se admite el pago de pedidos simulados.');
+        if (order.estado === 'pagado' && order.pagoSimulado?.resultado === 'aprobado') {
+          if (resultado === 'aprobado') return order;
+          throw orderError(409, 'Un pedido ya pagado no puede rechazarse.');
+        }
+        if (order.estado !== 'pendiente') throw orderError(409, 'Este pedido no está pendiente.');
+        if (resultado === 'aprobado') {
+          for (const item of order.items) {
+            const updated = await getDb().collection('productos').findOneAndUpdate(
+              { _id: new ObjectId(item.productoId), disponible: true, stock: { $gte: item.cantidad } },
+              { $inc: { stock: -item.cantidad, version: 1 }, $set: { actualizadaEn: instant, stockActualizadoEn: instant, stockActualizadoPor: userId } },
+              { session, returnDocument: 'after' },
+            );
+            if (!updated) throw orderError(409, 'No se puede aprobar: un producto fue retirado o no tiene suficientes existencias. No se descontó ningún artículo; el pedido sigue pendiente.');
+          }
+        }
+        const updated = await orders.findOneAndUpdate({ ...filter, estado: 'pendiente' }, {
+          $set: { estado: resultado === 'aprobado' ? 'pagado' : 'pendiente', actualizadoEn: instant, pagoSimulado: { tipo: 'simulado', resultado, monto: order.total, moneda: order.moneda, registradaEn: instant } },
+        }, { session, returnDocument: 'after' });
+        if (!updated) throw orderError(409, 'El pedido cambió. Actualiza Mis pedidos.');
+        return updated;
+      });
+    },
     async listProducts({ disponible, despues, limit }) {
       await ensureProducts();
       const products = getDb().collection('productos');
@@ -87,7 +183,7 @@ export function createDatabase({ uri, database }, { clientFactory = (connection,
     async findMembership(userId, now = new Date()) {
       const memberships = getDb().collection('membresias');
       await memberships.updateOne({ _id: userId, estado: 'activa', fin: { $lte: now } }, { $set: { estado: 'vencida' } });
-      return memberships.findOne({ _id: userId });
+      return familyRenewals.resolveMembershipAccess(userId, now);
     },
     async listMemberships({ estado, despues, now, limit }) {
       const memberships = getDb().collection('membresias');
@@ -156,7 +252,7 @@ export function createDatabase({ uri, database }, { clientFactory = (connection,
     },
     async createMembership(membership) {
       // _id es el usuario: MongoDB impide solicitudes concurrentes duplicadas.
-      await getDb().collection('membresias').insertOne(membership);
+      await familyRenewals.createInitialMembership(membership);
     },
     async findUserByEmail(correo) {
       return getDb().collection('usuarios').findOne({ correo });

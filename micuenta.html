@@ -53,6 +53,63 @@
                 </article>
 
             </div>
+            <section id="mi-familia" class="cuenta-seccion" aria-labelledby="familia-titulo">
+                <h2 id="familia-titulo">Mi grupo familiar</h2>
+                <p>Los planes Familiar y Premium familiar incluyen al titular y hasta cuatro beneficiarios con cuentas propias. Las invitaciones pendientes ocupan un cupo.</p>
+                <button type="button" id="familia-actualizar">Actualizar grupo familiar</button>
+                <p id="familia-mensaje" role="status" aria-live="polite"></p>
+                <div id="familia-resumen"></div>
+                <form id="familia-invitar" class="rutina-formulario" hidden>
+                    <label for="familia-correo">Correo de la cuenta que deseas invitar</label>
+                    <input id="familia-correo" name="correo" type="email" maxlength="254" required autocomplete="off">
+                    <button type="submit">Invitar al grupo familiar</button>
+                </form>
+                <div id="familia-lista" class="cuenta-tarjetas"></div>
+                <p id="familia-accion" role="status" aria-live="polite"></p>
+            </section>
+            <section id="mis-renovaciones" class="cuenta-seccion" aria-labelledby="renovaciones-titulo">
+                <h2 id="renovaciones-titulo">Renovar membresía</h2>
+                <p>Renueva el mismo plan por un mes. Si sigue vigente, el mes se añade desde su vencimiento; si venció, comienza al aprobar la renovación. Revisa el importe guardado en la solicitud. No se realizan cobros reales.</p>
+                <p id="renovacion-acceso"></p>
+                <button type="button" id="renovacion-solicitar" disabled>Solicitar renovación del mismo plan</button>
+                <button type="button" id="renovaciones-actualizar">Actualizar renovaciones</button>
+                <p id="renovacion-accion" role="status" aria-live="polite"></p>
+                <p id="renovaciones-mensaje" role="status" aria-live="polite"></p>
+                <div id="renovaciones-lista" class="cuenta-tarjetas"></div>
+                <button type="button" id="renovaciones-mas" hidden>Ver renovaciones anteriores</button>
+                <h3>Historial de periodos de mi membresía propia</h3>
+                <p>Conserva las fechas y comprobantes de cada periodo aprobado. El acceso de beneficiario se consulta en Mi grupo familiar.</p>
+                <p id="periodos-mensaje" role="status" aria-live="polite"></p>
+                <div id="periodos-lista" class="cuenta-tarjetas"></div>
+                <button type="button" id="periodos-mas" hidden>Ver periodos anteriores</button>
+            </section>
+            <section id="renovaciones-admin" class="cuenta-seccion" hidden aria-labelledby="renovaciones-admin-titulo">
+                <h2 id="renovaciones-admin-titulo">Administrar renovaciones</h2>
+                <div class="admin-controles"><label for="renovaciones-admin-estado">Estado de la renovación</label><select id="renovaciones-admin-estado"><option value="pendiente">Pendientes</option><option value="aplicada">Aplicadas</option><option value="cancelada">Canceladas</option></select><button type="button" id="renovaciones-admin-actualizar">Actualizar solicitudes de renovación</button></div>
+                <p id="renovaciones-admin-accion" role="status" aria-live="polite"></p>
+                <p id="renovaciones-admin-mensaje" role="status" aria-live="polite"></p>
+                <div id="renovaciones-admin-lista" class="cuenta-tarjetas"></div>
+                <button type="button" id="renovaciones-admin-mas" hidden>Ver más solicitudes de renovación</button>
+            </section>
+            <section id="mis-pedidos" class="cuenta-seccion" aria-labelledby="pedidos-titulo">
+                <h2 id="pedidos-titulo">Mis pedidos</h2>
+                <p>Revisa el importe guardado antes de simular el pago. Los pedidos pendientes no reservan existencias; no se realizan cobros reales.</p>
+                <div class="admin-controles">
+                    <label for="pedidos-estado">Estado del pedido</label>
+                    <select id="pedidos-estado">
+                        <option value="">Todos los pedidos</option>
+                        <option value="pendiente">Pendientes</option>
+                        <option value="pagado">Pagados en simulación</option>
+                    </select>
+                    <button type="button" id="pedidos-actualizar">Actualizar pedidos</button>
+                    <a href="index.html#productos">Ir a la tienda</a>
+                </div>
+                <p id="pedidos-mensaje" role="status" aria-live="polite">Cargando pedidos…</p>
+                <p id="pedidos-accion-mensaje" role="status" aria-live="polite"></p>
+                <div id="pedido-destacado" class="cuenta-tarjetas"></div>
+                <div id="pedidos-lista" class="cuenta-tarjetas"></div>
+                <button type="button" id="pedidos-mas" hidden>Ver más pedidos</button>
+            </section>
             <section id="mis-rutinas" class="cuenta-seccion" aria-labelledby="rutinas-titulo">
                 <h2 id="rutinas-titulo">Mis rutinas</h2>
                 <p>Rutinas generales para miembros con acceso vigente, disponibles con cualquiera de nuestros planes.</p>
@@ -69,6 +126,117 @@
                 <p id="rutinas-mensaje" role="status" aria-live="polite">Comprobando acceso…</p>
                 <div id="rutinas-lista" class="cuenta-tarjetas"></div>
                 <button type="button" id="rutinas-mas" hidden>Ver más rutinas</button>
+            </section>
+            <section id="mis-reservas" class="cuenta-seccion" aria-labelledby="reservas-titulo">
+                <h2 id="reservas-titulo">Citas con entrenadores</h2>
+                <p>Premium vigente permite reservar una sesión individual de 60 minutos. Todas las fechas se muestran en horario de Bogotá.</p>
+                <div class="admin-controles">
+                    <label for="reserva-entrenador">Entrenador para reservar</label>
+                    <select id="reserva-entrenador"><option value="">Todos los entrenadores</option></select>
+                    <button type="button" id="reserva-entrenadores-mas" hidden>Cargar más entrenadores</button>
+                    <button type="button" id="horarios-actualizar">Actualizar horarios</button>
+                </div>
+                <p id="horarios-mensaje" role="status" aria-live="polite">Comprobando acceso…</p>
+                <p id="reserva-accion" role="status" aria-live="polite"></p>
+                <div id="horarios-lista" class="cuenta-tarjetas"></div>
+                <button type="button" id="horarios-mas" hidden>Ver más horarios</button>
+                <h3>Mis reservas</h3>
+                <div class="admin-controles">
+                    <label for="reservas-estado">Estado de la reserva</label>
+                    <select id="reservas-estado"><option value="">Todas</option><option value="confirmada">Confirmadas</option><option value="cancelada">Canceladas</option></select>
+                    <button type="button" id="reservas-actualizar">Actualizar mis reservas</button>
+                </div>
+                <p id="reservas-mensaje" role="status" aria-live="polite"></p>
+                <div id="reservas-lista" class="cuenta-tarjetas"></div>
+                <button type="button" id="reservas-mas" hidden>Ver más reservas</button>
+            </section>
+            <section id="chat-miembro" class="cuenta-seccion chat-panel" aria-labelledby="chat-miembro-titulo">
+                <h2 id="chat-miembro-titulo">Mensajes con entrenadores</h2>
+                <p>Conversaciones privadas para Premium vigente. Pulsa Actualizar para ver respuestas nuevas.</p>
+                <div class="admin-controles">
+                    <label for="chat-entrenador">Entrenador para conversar</label>
+                    <select id="chat-entrenador"><option value="">Selecciona un entrenador</option></select>
+                    <button type="button" id="chat-abrir">Abrir conversación</button>
+                </div>
+                <button type="button" data-chat-refresh>Actualizar conversaciones</button>
+                <p data-chat-status role="status" aria-live="polite"></p>
+                <div data-chat-list class="cuenta-tarjetas"></div>
+                <button type="button" data-chat-more hidden>Ver más conversaciones</button>
+                <div data-chat-thread hidden>
+                    <h3 data-chat-title></h3>
+                    <button type="button" data-messages-refresh>Actualizar mensajes</button>
+                    <button type="button" data-messages-more hidden>Ver mensajes anteriores</button>
+                    <div data-messages-list class="chat-mensajes"></div>
+                    <form data-message-form class="rutina-editor">
+                        <label for="chat-miembro-texto">Mensaje para el entrenador</label>
+                        <textarea id="chat-miembro-texto" name="texto" required maxlength="2000" rows="3"></textarea>
+                        <button type="submit">Enviar mensaje</button>
+                        <p data-message-status role="status" aria-live="polite"></p>
+                    </form>
+                </div>
+            </section>
+            <section id="panel-entrenador" class="cuenta-seccion" hidden aria-labelledby="portal-entrenador-titulo">
+                <h2 id="portal-entrenador-titulo">Mi agenda de entrenador</h2>
+                <p id="portal-entrenador-nombre"></p>
+                <button type="button" id="entrenador-reservas-actualizar">Actualizar mi agenda</button>
+                <p id="entrenador-reservas-mensaje" role="status" aria-live="polite"></p>
+                <div id="entrenador-reservas-lista" class="cuenta-tarjetas"></div>
+                <button type="button" id="entrenador-reservas-mas" hidden>Ver más citas asignadas</button>
+                <div id="chat-entrenador-panel" class="chat-panel">
+                    <h3>Mensajes de mis miembros</h3>
+                    <button type="button" data-chat-refresh>Actualizar conversaciones</button>
+                    <p data-chat-status role="status" aria-live="polite"></p>
+                    <div data-chat-list class="cuenta-tarjetas"></div>
+                    <button type="button" data-chat-more hidden>Ver más conversaciones</button>
+                    <div data-chat-thread hidden>
+                        <h3 data-chat-title></h3>
+                        <button type="button" data-messages-refresh>Actualizar mensajes</button>
+                        <button type="button" data-messages-more hidden>Ver mensajes anteriores</button>
+                        <div data-messages-list class="chat-mensajes"></div>
+                        <form data-message-form class="rutina-editor">
+                            <label for="chat-entrenador-texto">Respuesta para el miembro</label>
+                            <textarea id="chat-entrenador-texto" name="texto" required maxlength="2000" rows="3"></textarea>
+                            <button type="submit">Enviar respuesta</button>
+                            <p data-message-status role="status" aria-live="polite"></p>
+                        </form>
+                    </div>
+                </div>
+            </section>
+            <section id="administracion-entrenadores" class="cuenta-seccion" hidden aria-labelledby="entrenadores-admin-titulo">
+                <h2 id="entrenadores-admin-titulo">Administrar entrenadores y horarios</h2>
+                <p>Vincula una cuenta existente. Deshabilitar un entrenador cancela sus citas futuras y cierra sus horarios; al habilitarlo debes volver a abrirlos.</p>
+                <div class="admin-controles">
+                    <label for="entrenadores-disponibilidad">Mostrar entrenadores</label>
+                    <select id="entrenadores-disponibilidad"><option value="todas">Todos</option><option value="disponibles">Habilitados</option><option value="deshabilitados">Deshabilitados</option></select>
+                    <button type="button" id="entrenadores-admin-actualizar">Actualizar lista de entrenadores</button>
+                </div>
+                <p id="entrenadores-admin-mensaje" role="status" aria-live="polite"></p>
+                <div id="entrenadores-admin-lista" class="cuenta-tarjetas"></div>
+                <button type="button" id="entrenadores-admin-mas" hidden>Ver más del equipo</button>
+                <form id="entrenador-formulario" class="rutina-editor">
+                    <h3 id="entrenador-editor-titulo">Crear entrenador</h3>
+                    <div id="entrenador-vinculo"><label for="entrenador-correo">Correo de la cuenta del entrenador</label><input id="entrenador-correo" name="correo" type="email" required maxlength="254"></div>
+                    <label for="entrenador-nombre">Nombre público del entrenador</label><input id="entrenador-nombre" name="nombre" required minlength="2" maxlength="100">
+                    <label for="entrenador-especialidad">Especialidad</label><input id="entrenador-especialidad" name="especialidad" required minlength="2" maxlength="100">
+                    <label for="entrenador-descripcion">Descripción del entrenador</label><textarea id="entrenador-descripcion" name="descripcion" required minlength="5" maxlength="500" rows="3"></textarea>
+                    <label for="entrenador-imagen">Foto del entrenador</label><select id="entrenador-imagen" name="imagen"><option value="img/entrenador1.jpg">Foto 1</option><option value="img/entrenador2.jpg">Foto 2</option><option value="img/entrenador3.jpg">Foto 3</option><option value="img/entrenador4.jpg">Foto 4</option><option value="img/entrenador5.jpg">Foto 5</option></select>
+                    <label class="rutina-checkbox"><input name="disponible" type="checkbox"> Habilitado para citas y mensajes</label>
+                    <button type="submit" id="entrenador-guardar">Crear entrenador</button><button type="button" id="entrenador-cancelar" hidden>Cancelar edición del entrenador</button>
+                    <p id="entrenador-form-mensaje" role="status" aria-live="polite"></p>
+                </form>
+                <form id="horario-formulario" class="rutina-editor">
+                    <h3>Publicar horario</h3>
+                    <p>Sesión de 60 minutos, a una hora exacta de Bogotá, entre 15 minutos y 90 días en el futuro. Publica cada horario por separado.</p>
+                    <label for="horario-entrenador">Entrenador del horario</label><select id="horario-entrenador" name="entrenadorId" required><option value="">Selecciona un entrenador habilitado</option></select>
+                    <label for="horario-inicio">Inicio de la cita en Bogotá</label><input id="horario-inicio" name="inicio" type="datetime-local" step="3600" required>
+                    <button type="submit">Publicar horario</button><p id="horario-form-mensaje" role="status" aria-live="polite"></p>
+                </form>
+                <div class="admin-controles">
+                    <label for="agenda-entrenador">Filtrar agenda por entrenador</label><select id="agenda-entrenador"><option value="">Todos los entrenadores</option></select>
+                    <button type="button" id="agenda-actualizar">Actualizar agenda administrativa</button>
+                </div>
+                <p id="agenda-mensaje" role="status" aria-live="polite"></p><div id="agenda-lista" class="cuenta-tarjetas"></div><button type="button" id="agenda-mas" hidden>Ver más de la agenda</button>
+                <h3>Reservas del gimnasio</h3><p id="reservas-admin-mensaje" role="status" aria-live="polite"></p><div id="reservas-admin-lista" class="cuenta-tarjetas"></div><button type="button" id="reservas-admin-mas" hidden>Ver más reservas del gimnasio</button>
             </section>
             <section id="administracion-membresias" hidden aria-labelledby="admin-titulo">
                 <h2 id="admin-titulo">Administrar membresías</h2>
@@ -169,6 +337,9 @@
     <script src="web.js" defer></script>
     <script src="rutinas.js" defer></script>
     <script src="productos.js" defer></script>
+    <script src="pedidos.js" defer></script>
+    <script src="entrenadores.js" defer></script>
+    <script src="familia.js" defer></script>
 </body>
 
 </html>

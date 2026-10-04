@@ -108,44 +108,10 @@
             <h2>Nuestros entrenadores</h2>
             <p>Conoce a nuestro equipo de entrenadores y encuentra el enfoque que mejor se adapte a tus objetivos.</p>
 
-            <div>
-
-                <article>
-                    <img src="img/entrenador1.jpg" alt="Entrenador Carlos Rodríguez">
-                    <h3>Carlos Rodríguez</h3>
-                    <p>Fuerza y rendimiento</p>
-                    <p>Especializado en aumento de fuerza, levantamiento de peso y mejora del rendimiento físico.</p>
-                </article>
-
-                <article>
-                    <img src="img/entrenador2.jpg" alt="Entrenadora Laura Martínez">
-                    <h3>Laura Martínez</h3>
-                    <p>Entrenamiento funcional</p>
-                    <p>Enfocada en movilidad, resistencia, coordinación y ejercicios funcionales.</p>
-                </article>
-
-                <article>
-                    <img src="img/entrenador3.jpg" alt="Entrenador Andrés Gómez">
-                    <h3>Andrés Gómez</h3>
-                    <p>Hipertrofia y musculación</p>
-                    <p>Especializado en desarrollo muscular y planificación de rutinas para ganar masa muscular.</p>
-                </article>
-
-                <article>
-                    <img src="img/entrenador4.jpg" alt="Entrenadora Valentina Torres">
-                    <h3>Valentina Torres</h3>
-                    <p>Pérdida de grasa y acondicionamiento</p>
-                    <p>Enfocada en entrenamiento cardiovascular, quema de grasa y mejora de la condición física.</p>
-                </article>
-
-                <article>
-                    <img src="img/entrenador5.jpg" alt="Entrenador Sebastián Ramírez">
-                    <h3>Sebastián Ramírez</h3>
-                    <p>Entrenamiento deportivo</p>
-                    <p>Especializado en preparación física, velocidad, potencia y rendimiento para diferentes deportes.
-                    </p>
-                </article>
-            </div>
+            <p><button type="button" id="entrenadores-actualizar">Actualizar entrenadores</button></p>
+            <p id="entrenadores-mensaje" role="status" aria-live="polite">Cargando entrenadores…</p>
+            <div id="entrenadores-lista"></div>
+            <button type="button" id="entrenadores-mas" hidden>Ver más entrenadores</button>
         </section>
 
         <!-- RUTINAS -->
@@ -207,6 +173,7 @@
     </footer>
     <script src="web.js" defer></script>
     <script src="productos.js" defer></script>
+    <script src="entrenadores.js" defer></script>
 </body>
 
 </html>
