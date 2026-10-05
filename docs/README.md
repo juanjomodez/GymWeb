@@ -1,3 +1,5 @@
+# DocumentaciónBD
+
 Nombre del proyecto: Gym Flow
 Integrantes: Juan Jose Mosquera Bermudez - Santiago Lopez Gomez - Alejandro Pantoja Obando - Jesus David Albarracin Ortega - Yeferson David Casso Ruiz
 
@@ -38,7 +40,7 @@ El proyecto se enfocará en el desarrollo de una aplicación web funcional y no 
 cceso físico al gimnasio.
 
 Historias de Usuario(HU):
-HU-01 Registro de usuario
+# HU-01 Registro de usuario
 Como visitante, quiero registrarme en la plataforma para crear una cuenta y acceder a los servicios de GymFlow.
 Criterios de aceptacion:
 - El usuario debe poder ingresar su nombre, correo y contraseña.
@@ -47,7 +49,7 @@ Criterios de aceptacion:
 - Al completar correctamente el registro, la cuenta debe quedar almacenada en la base de datos.
 - El usuario debe poder iniciar sesión posteriormente con sus datos.
 
-HU-02 Inicio de sesion
+# HU-02 Inicio de sesion
 Como usuario registrado, quiero iniciar sesion para acceder a mi cuenta y a las funcionalidades privadas de la plataforma.
 Criterios de aceptacion:
 - El usuario debe ingresar correo y contraseña.
@@ -56,7 +58,7 @@ Criterios de aceptacion:
 - Si los datos son correctos, el usuario debe poder acceder a su cuenta.
 - Las secciones privadas no deben estar disponibles para usuarios que no hayan iniciado sesión.
 
-HU-03 Consulta de membresia
+# HU-03 Consulta de membresia
 Como usuario registrado, quiero consultar mi membresia para conocer el plan que tengo activo, su estado y el tiempo restante.
 Criterios de aceptacion:
 - La plataforma debe mostrar el nombre del plan contratado.
@@ -65,7 +67,7 @@ Criterios de aceptacion:
 - Debe indicar el tiempo restante de la membresía.
 - La informacion mostrada debe corresponder al usuario que inició sesion.
 
-HU-04 Compra de membresía
+# HU-04 Compra de membresía
 Como usuario registrado, quiero consultar los planes disponibles y seleccionar uno para adquirir una membresia que se adapte a mis necesidades.
 Criterios de aceptacion:
 - El usuario debe poder visualizar los diferentes planes disponibles.
@@ -74,7 +76,7 @@ Criterios de aceptacion:
 - La compra será simulada, sin utilizar una pasarela de pago real.
 - Al completar la compra, la membresía debe quedar asociada a la cuenta del usuario.
 
-HU-05 Renovación automática
+# HU-05 Renovación automática
 Como usuario con una membresia activa, quiero activar o desactivar la renovacion automática para decidir si deseo continuar con mi plan cuando finalice.
 Criterios de aceptacion:
 - El usuario debe poder consultar el estado actual de la renovación automática.
@@ -83,7 +85,7 @@ Criterios de aceptacion:
 - El estado actualizado debe mostrarse inmediatamente en la plataforma.
 
 
-HU-06 Consulta de rutinas
+# HU-06 Consulta de rutinas
 Como usuario registrado, quiero consultar rutinas de entrenamiento para encontrar ejercicios relacionados con mis objetivos fisicos.
 Criterios de aceptacion:
 - El usuario debe poder visualizar las rutinas disponibles.
@@ -91,7 +93,7 @@ Criterios de aceptacion:
 - Las rutinas pueden estar organizadas según objetivos como fuerza, hipertrofia, resistencia o pérdida de grasa.
 - El usuario debe poder consultar los detalles de una rutina seleccionada.
 
-HU-07 Consulta de entrenadores
+# HU-07 Consulta de entrenadores
 Como usuario, quiero consultar los entrenadores disponibles para conocer sus especialidades y elegir el que mejor se adapte a mis objetivos.
 Criterios de aceptacion:
 - La plataforma debe mostrar los entrenadores disponibles.
@@ -99,7 +101,7 @@ Criterios de aceptacion:
 - El usuario debe poder conocer informacion básica de cada entrenador.
 - Los entrenadores deben tener horarios disponibles para realizar reservas.
 
-HU-08 Reserva de entrenador
+# HU-08 Reserva de entrenador
 Como usuario registrado, quiero reservar un horario con un entrenador para recibir acompañamiento durante mi entrenamiento.
 Criterios de aceptacion:
 - El usuario debe seleccionar un entrenador.
@@ -109,7 +111,7 @@ Criterios de aceptacion:
 - Una vez realizada la reserva, esta debe quedar asociada tanto al usuario como al entrenador.
 - El usuario debe poder consultar sus reservas.
 
-HU-09 Compra de productos
+# HU-09 Compra de productos
 Como usuario registrado, quiero comprar productos deportivos dentro de la plataforma para complementar mi entrenamiento.
 Criterios de aceptacion:
 - El usuario debe poder visualizar los productos disponibles.
@@ -119,7 +121,7 @@ Criterios de aceptacion:
 - El sistema debe calcular el valor total del carrito.
 - La compra sera simulada y no utilizara pago real.
 
-HU-10 Gestion del carrito
+# HU-10 Gestion del carrito
 Como usuario, quiero administrar los productos de mi carrito para revisar mi compra antes de finalizarla.
 Criterios de aceptacion:
 - El usuario debe poder visualizar los productos agregados.
@@ -128,21 +130,21 @@ Criterios de aceptacion:
 - El precio total debe actualizarse automáticamente.
 - El carrito debe indicar cuando no contiene productos.
 
-HU-11 Cierre de sesion
+# HU-11 Cierre de sesion
 Como usuario autenticado, quiero cerrar sesion para finalizar de manera segura mi acceso a la plataforma.
 Criterios de aceptacion:
 - Debe existir una opción visible para cerrar sesion.
 - Al cerrar sesion, el usuario debe perder el acceso a las vistas privadas.
 - Para volver a acceder a su cuenta deberá iniciar sesion nuevamente.
 
-HU-12 Consulta de maquinas del gimnasio
+# HU-12 Consulta de maquinas del gimnasio
 Como usuario, quiero visualizar las máquinas del gimnasio para conocer su funcionamiento y aprender a utilizarlas correctamente.
 Criterios de aceptacion:
 - El usuario debe poder visualizar modelos 3D de las máquinas disponibles.
 - Cada máquina debe incluir una descripción de su uso.
 - Debe mostrarse información sobre los grupos musculares trabajados.
 
-HU-13 Accesibilidad y usabilidad
+# HU-13 Accesibilidad y usabilidad
 Como usuario, quiero que la plataforma sea fácil de leer y utilizar para poder acceder a la informacion y realizar mis actividades sin dificultad.
 Criterios de aceptacion:
 - Los textos deben tener un tamaño adecuado para su lectura.
