@@ -267,26 +267,3 @@ Remove-Item Env:PORT
 ```
 
 # fin configuración rapida ==========================================================================================
-=======
-Acceso a MongoDB Atlas
-En Atlas, abre el proyecto de Gym y confirma que el clúster esté activo. En Security → Database Access, verifica que el usuario de base de datos tenga acceso a GymWeb; en Security → Network Access, autoriza la IP pública desde la que se ejecutará el backend.
-
-En el clúster, selecciona Connect → Drivers → Node.js y copia la URI de conexión. Configúrala localmente en backend/.env junto con MONGODB_DB=GymWeb. No incluyas contraseñas ni URI reales en este README.
-
-Desde PowerShell, instala dependencias la primera vez y luego inicia el backend:
-
-cd backend
-npm ci # Solo la primera vez
-if (-not (Test-Path .env)) { Copy-Item .env.example .env }
-notepad .env
-npm start
-
-En .env, agrega la URI y MONGODB_DB=GymWeb antes de iniciar el servidor. El comando conserva un .env ya configurado.
-
-Abre http://127.0.0.1:3000/health. Una respuesta HTTP 200 con {"status":"ok","database":"connected"} confirma el ping a MongoDB. Un HTTP 503 indica que se debe revisar la URI, el usuario, los permisos, la IP autorizada, el clúster y la conectividad de red.
-
-Para consultar los documentos en Atlas, abre Database → Data Explorer, selecciona la base GymWeb y luego la colección que quieras revisar. Un ping exitoso confirma conexión, pero no demuestra por sí solo que existan documentos o que haya permisos de escritura.
-
-Diagramas ER
-Los diagramas están en la carpeta docs/: ER actual y ER propuesto. Sus archivos editables son modelo actual y modelo propuesto.
->>>>>>> 8c90076d5d7341ba5a86b0ff7cc7b9ded7d905ac:docs/README.md
