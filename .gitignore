@@ -1,6 +1,5 @@
 node_modules/
-backend/node_modules/
-backend/.env
-backend/uploads/
-coverage/
-*.log
+.env
+.env.*
+!.env.example
+npm-debug.log*
