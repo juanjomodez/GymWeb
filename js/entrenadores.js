@@ -21,15 +21,16 @@ function trainerCard(trainer) {
 }
 function trainingList({ container, status, more, url, key, render, query = () => new URLSearchParams(), afterLoad = () => {}, denied = () => {} }) {
     let next = null, generation = 0, timer, controller;
-    function clear() { container.replaceChildren(); next = null; more.hidden = true; }
+    function clearContent() { container.replaceChildren(); next = null; more.hidden = true; }
+    function clear() { generation++; controller?.abort(); window.clearTimeout(timer); clearContent(); }
     async function load(append = false) {
         const current = ++generation; controller?.abort(); controller = new AbortController(); window.clearTimeout(timer);
-        if (!append) clear(); more.disabled = true; status.textContent = 'Cargando…';
+        if (!append) clearContent(); more.disabled = true; status.textContent = 'Cargando…';
         try {
             const params = query(); if (append && next) params.set('despues', next);
             const response = await fetch(url + '?' + params, { cache: 'no-store', signal: controller.signal });
             if (current !== generation) return;
-            if (response.status === 401) { clear(); window.location.replace('login.html'); return; }
+            if (response.status === 401) { clearContent(); window.location.replace('login.html'); return; }
             const body = await response.json(); if (current !== generation) return;
             if (!response.ok) throw Object.assign(new Error(body.message), { status: response.status });
             if (body.accesoHasta) {
@@ -41,7 +42,7 @@ function trainingList({ container, status, more, url, key, render, query = () =>
             const count = container.children.length, singular = { entrenadores: 'entrenador', horarios: 'horario', reservas: 'reserva', conversaciones: 'conversación', renovaciones: 'renovación', periodos: 'periodo' }[key];
             status.textContent = count ? `${count} ${count === 1 ? singular : key}.` : `No hay ${key} para mostrar.`;
             afterLoad(body[key], append);
-        } catch (error) { if (current !== generation || error.name === 'AbortError') return; clear(); status.textContent = trainingFailure(error); denied(error); }
+        } catch (error) { if (current !== generation || error.name === 'AbortError') return; clearContent(); status.textContent = trainingFailure(error); denied(error); }
         finally { if (current === generation) more.disabled = false; }
     }
     more.addEventListener('click', () => load(true)); return { load, clear };
@@ -116,7 +117,7 @@ function setupTrainingChat(panel, staff = false) {
 function setupTrainingAccount(user) {
     if (!document.querySelector('#mis-reservas')) return;
     const find = id => document.getElementById(id), actionStatus = find('reserva-accion'), attempts = new Map();
-    const memberChat = setupTrainingChat(find('chat-miembro')), profiles = new Map(); let trainerNext = null;
+    const memberChat = setupTrainingChat(find('chat-miembro')), profiles = new Map(); let trainerNext = null, premiumAccess = false, refreshGeneration = 0;
     function fillOptions(select, rows, placeholder) {
         const value = select.value; select.replaceChildren(trainingElement('option', placeholder)); select.firstElementChild.value = '';
         for (const trainer of rows) { const option = trainingElement('option', trainer.nombre); option.value = trainer._id; select.append(option); } select.value = value;
@@ -140,20 +141,40 @@ function setupTrainingAccount(user) {
         if (staff || administrative) card.append(trainingElement('p', 'Miembro: ' + booking.miembroNombre));
         if (booking.estado === 'confirmada' && new Date(booking.inicio) > new Date() && !administrative) card.append(trainingAction(staff ? 'Cancelar cita y cerrar horario' : 'Cancelar mi reserva', async () => {
             try { const body = await trainingRequest(`/api/${staff ? 'entrenador/' : ''}reservas/${booking._id}/cancelar`, {}); (staff ? find('entrenador-reservas-mensaje') : actionStatus).textContent = body.message; } catch (error) { (staff ? find('entrenador-reservas-mensaje') : actionStatus).textContent = trainingFailure(error); }
-            if (staff) await staffBookings.load(); else await Promise.all([bookings.load(), slots.load()]);
+            if (staff) await staffBookings.load(); else await Promise.all([bookings.load(), ...(premiumAccess ? [slots.load()] : [])]);
         })); return card;
     }
     const bookings = trainingList({ container: find('reservas-lista'), status: find('reservas-mensaje'), more: find('reservas-mas'), url: '/api/reservas', key: 'reservas', query: () => new URLSearchParams(find('reservas-estado').value ? { estado: find('reservas-estado').value } : {}), render: booking => bookingCard(booking) });
     const staffChat = setupTrainingChat(find('chat-entrenador-panel'), true);
     const staffBookings = trainingList({ container: find('entrenador-reservas-lista'), status: find('entrenador-reservas-mensaje'), more: find('entrenador-reservas-mas'), url: '/api/entrenador/reservas', key: 'reservas', render: booking => bookingCard(booking, true), denied: error => { if (error.status === 403) { find('panel-entrenador').hidden = true; staffChat.clear(); } } });
-    async function checkTrainer() {
-        try { const body = await trainingRequest('/api/entrenador/me'); find('panel-entrenador').hidden = false; find('portal-entrenador-nombre').textContent = body.entrenador.nombre; staffBookings.load(); staffChat.refresh(); }
-        catch (error) { if (error.status === 403) { find('panel-entrenador').hidden = true; staffBookings.clear(); staffChat.clear(); } else find('entrenador-reservas-mensaje').textContent = trainingFailure(error); }
+    function showTrainer(profile) {
+        find('panel-entrenador').hidden = !profile;
+        if (profile) { find('portal-entrenador-nombre').textContent = profile.nombre; staffBookings.load(); staffChat.refresh(); }
+        else { staffBookings.clear(); staffChat.clear(); }
     }
-    find('reserva-entrenador').addEventListener('change', () => slots.load()); find('horarios-actualizar').addEventListener('click', () => { loadProfiles(); slots.load(); }); find('reserva-entrenadores-mas').addEventListener('click', () => loadProfiles(true));
-    find('reservas-actualizar').addEventListener('click', () => bookings.load()); find('reservas-estado').addEventListener('change', () => bookings.load()); find('entrenador-reservas-actualizar').addEventListener('click', () => checkTrainer());
+    find('reserva-entrenador').addEventListener('change', () => { if (premiumAccess) slots.load(); }); find('horarios-actualizar').addEventListener('click', () => refresh()); find('reserva-entrenadores-mas').addEventListener('click', () => { if (premiumAccess) loadProfiles(true); });
+    find('reservas-actualizar').addEventListener('click', () => bookings.load()); find('reservas-estado').addEventListener('change', () => bookings.load()); find('entrenador-reservas-actualizar').addEventListener('click', () => refresh());
     find('chat-abrir').addEventListener('click', () => { if (!find('chat-entrenador').value) { find('chat-miembro').querySelector('[data-chat-status]').textContent = 'Selecciona un entrenador.'; return; } memberChat.openTrainer(find('chat-entrenador').value); });
-    const refresh = () => { loadProfiles(); slots.load(); bookings.load(); memberChat.refresh(); checkTrainer(); };
+    function showPremium(enabled, message = 'Necesitas una membresía Premium vigente para reservar y conversar con entrenadores.') {
+        premiumAccess = enabled;
+        find('reserva-controles').hidden = !enabled; find('chat-miembro-controles').hidden = !enabled;
+        find('chat-miembro').querySelector('[data-chat-refresh]').hidden = !enabled;
+        if (!enabled) { slots.clear(); memberChat.clear(); find('horarios-mensaje').textContent = message; find('chat-miembro').querySelector('[data-chat-status]').textContent = message; }
+    }
+    async function refresh() {
+        const current = ++refreshGeneration;
+        try {
+            const access = await trainingRequest('/api/entrenamiento/acceso');
+            if (current !== refreshGeneration) return;
+            showPremium(access.premium); showTrainer(access.entrenador);
+            if (access.premium) { loadProfiles(); slots.load(); memberChat.refresh(); }
+        } catch (error) {
+            if (current !== refreshGeneration) return;
+            showPremium(false, trainingFailure(error)); showTrainer(null);
+            actionStatus.textContent = trainingFailure(error);
+        }
+        if (current === refreshGeneration) bookings.load();
+    }
     document.addEventListener('membership-updated', refresh); document.addEventListener('visibilitychange', () => { if (!document.hidden) refresh(); }); refresh();
     if (user.rol === 'admin') setupTrainingAdministration(booking => bookingCard(booking, false, true), refresh);
 }

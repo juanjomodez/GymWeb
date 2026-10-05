@@ -7,166 +7,206 @@ import { createDatabase } from '../src/database.js';
 import { initialProducts } from '../src/products.js';
 import { memoryClient } from '../test-support/memory-client.js';
 
-const aId = '123456789012345678901234', bId = '223456789012345678901234';
+const ids = { a: '123456789012345678901234', b: '223456789012345678901234', c: '323456789012345678901234' };
 const productId = initialProducts[0]._id;
-const item = (productoId = productId, cantidad = 2) => ({ productoId, cantidad });
-async function fixture(t, options = { environment: 'development', demoPayments: true }) {
-  const client = memoryClient();
+const item = (id = productId, cantidad = 2) => ({ productoId: id, cantidad });
+async function fixture(t, options = {}) {
+  const client = memoryClient(), clock = { value: new Date('2026-10-05T15:00:00Z') };
   const db = createDatabase({ uri: 'mongodb://local-double', database: 'GymWeb' }, { clientFactory: () => client });
-  for (const [token, userId, rol] of [['a', aId, 'usuario'], ['b', bId, 'admin']]) {
-    client.rows('usuarios').push({ _id: new ObjectId(userId), nombre: 'Cuenta de prueba', correo: `${token}@example.invalid`, rol });
-    client.rows('sesiones').push({ _id: createHash('sha256').update(token.repeat(64)).digest('hex'), userId, expiresAt: new Date('2100-01-01') });
+  for (const token of Object.keys(ids)) {
+    client.rows('usuarios').push({ _id: new ObjectId(ids[token]), nombre: 'Persona ' + token, correo: token + '@example.invalid', rol: token === 'b' ? 'admin' : 'usuario' });
+    client.rows('sesiones').push({ _id: createHash('sha256').update(token.repeat(64)).digest('hex'), userId: ids[token], expiresAt: new Date('2100-01-01') });
   }
-  const server = createApp(db, options).listen(0, '127.0.0.1');
+  const server = createApp(db, { ...options, now: () => new Date(clock.value) }).listen(0, '127.0.0.1');
   await new Promise(resolve => server.once('listening', resolve));
   t.after(() => new Promise(resolve => server.close(resolve)));
-  const base = `http://127.0.0.1:${server.address().port}`;
-  const request = (path, token = 'a', extra = {}) => fetch(base + path, { ...extra, headers: { ...(token ? { Cookie: `gym_session=${token.repeat(64)}` } : {}), ...extra.headers } });
+  const base = 'http://127.0.0.1:' + server.address().port;
+  const request = (path, token = 'a', extra = {}) => fetch(base + path, { ...extra, headers: { ...(token ? { Cookie: 'gym_session=' + token.repeat(64) } : {}), ...extra.headers } });
   const post = (path, body, token = 'a', headers = {}) => request(path, token, { method: 'POST', headers: { 'Content-Type': 'application/json', ...headers }, body: JSON.stringify(body) });
-  const create = (items = [item()], clave = randomUUID(), token = 'a') => post('/api/pedidos', { items, clave }, token);
-  const pay = (id, resultado = 'aprobado', token = 'a') => post(`/api/pedidos/${id}/pago-simulado`, { resultado }, token);
   const product = (id = productId) => client.rows('productos').find(row => String(row._id) === id);
-  return { client, db, request, post, create, pay, product };
+  const total = items => items.reduce((sum, row) => sum + (product(row.productoId)?.precio || initialProducts.find(p => p._id === row.productoId)?.precio || 1) * row.cantidad, 0);
+  const create = (items = [item()], clave = randomUUID(), token = 'a', expected = total(items)) => post('/api/pedidos', { items, clave, totalEsperado: expected }, token);
+  const action = (id, name, token = 'b', admin = true) => post('/api/' + (admin ? 'admin/' : '') + 'pedidos/' + id + '/' + name, {}, token);
+  const ownCancel = (id, token = 'a') => action(id, 'cancelar', token, false);
+  const order = async (...args) => { const response = await create(...args); assert.equal(response.status, 201, await response.clone().text()); return (await response.json()).pedido; };
+  return { client, db, clock, request, post, product, create, action, ownCancel, order };
 }
 
-test('pedidos y pagos requieren sesión; usuarios y administradores solo ven y pagan sus propios pedidos', async t => {
-  const f = await fixture(t);
-  assert.equal((await f.request('/api/pedidos', null)).status, 401);
-  assert.equal((await f.create([item()], randomUUID(), null)).status, 401);
-  const created = await f.create(); const order = (await created.json()).pedido;
-  assert.equal((await f.request(`/api/pedidos/${order._id}`, null)).status, 401);
-  assert.equal((await f.pay(order._id, 'aprobado', null)).status, 401);
-  assert.equal((await f.request(`/api/pedidos/${order._id}`, 'b')).status, 404);
-  assert.equal((await f.pay(order._id, 'aprobado', 'b')).status, 404);
-  assert.equal((await (await f.request('/api/pedidos', 'b')).json()).pedidos.length, 0);
-  assert.equal(f.product().stock, 10);
-});
-
-test('crear y pagar está apagado por defecto y en producción; el historial sigue legible', async t => {
-  for (const options of [{}, { environment: 'production', demoPayments: true }, { environment: 'development', demoPayments: false }]) {
+test('compra funciona en producción y demo, reserva stock y aparece en el perfil sin membresía', async t => {
+  for (const options of [{}, { environment: 'production', demoPayments: true }, { environment: 'development', demoPayments: true }]) {
     const f = await fixture(t, options);
-    assert.equal((await f.create()).status, 403);
-    assert.equal((await f.pay('500000000000000000000004')).status, 403);
-    assert.equal((await (await f.request('/api/pedidos')).json()).simulacionHabilitada, false);
-    assert.equal(f.client.rows('pedidos').length, 0); assert.equal(f.client.rows('productos').length, 0);
+    const saved = await f.order([item(), item(initialProducts[2]._id, 1)]);
+    assert.equal(saved.total, 335000); assert.equal(saved.tipo, 'compra'); assert.equal(saved.estado, 'pendiente');
+    assert.equal(saved.metodoPago, 'gimnasio'); assert.equal(saved.entrega, 'recogida'); assert.equal(saved.pagoSimulado, null);
+    assert.equal(f.product().stock, 8); assert.equal(f.product().version, 2);
+    assert.equal((await (await f.request('/api/pedidos')).json()).pedidos[0]._id, saved._id);
+    assert.equal((await f.post('/api/pedidos/' + saved._id + '/pago-simulado', { resultado: 'aprobado' })).status, 403);
+    assert.equal(saved.userId, undefined); assert.equal(saved.clave, undefined); assert.equal(saved.comprador, undefined);
   }
 });
 
-test('pedido copia precios y contenido del servidor, no reserva existencias ni exige membresía', async t => {
+test('precios e instantáneas provienen del servidor; cambio de precio exige nueva confirmación sin reservas parciales', async t => {
   const f = await fixture(t);
-  const response = await f.create([item(), item(initialProducts[2]._id, 1)]);
-  assert.equal(response.status, 201); assert.equal(response.headers.get('cache-control'), 'no-store');
-  const order = (await response.json()).pedido;
-  assert.equal(order.total, 335000); assert.equal(order.moneda, 'COP'); assert.equal(order.estado, 'pendiente'); assert.equal(order.tipo, 'simulado');
-  assert.equal(order.items[0].precioUnitario, 150000); assert.equal(order.items[0].subtotal, 300000);
-  assert.equal(order.userId, undefined); assert.equal(order.clave, undefined); assert.equal(f.product().stock, 10);
-  await f.db.updateProduct(productId, 1, { nombre: 'Nombre nuevo', precio: 200000 });
-  const saved = (await (await f.request(`/api/pedidos/${order._id}`)).json()).pedido;
-  assert.equal(saved.items[0].nombre, 'Proteína'); assert.equal(saved.total, 335000);
-  assert.equal((await f.pay(order._id)).status, 200); assert.equal(f.product().stock, 8);
+  await f.request('/api/productos');
+  await f.db.updateProduct(productId, 1, { precio: 200000, nombre: 'Nombre actualizado' });
+  assert.equal((await f.create([item()], randomUUID(), 'a', 300000)).status, 409);
+  assert.equal(f.product().stock, 10); assert.equal(f.client.rows('pedidos').length, 0);
+  const saved = await f.order();
+  assert.equal(saved.total, 400000); assert.equal(saved.items[0].nombre, 'Nombre actualizado');
+  await f.db.updateProduct(productId, 3, { precio: 250000, nombre: 'Otro nombre' });
+  const detail = (await (await f.request('/api/pedidos/' + saved._id)).json()).pedido;
+  assert.equal(detail.total, 400000); assert.equal(detail.items[0].nombre, 'Nombre actualizado');
 });
 
-test('misma clave y contenido recupera un solo pedido; usarla para otro contenido da conflicto', async t => {
-  const f = await fixture(t); const key = randomUUID();
+test('sesión, propiedad y rol protegen compras, cancelaciones y confirmaciones administrativas', async t => {
+  const f = await fixture(t);
+  assert.equal((await f.create([item()], randomUUID(), null)).status, 401);
+  assert.equal((await f.request('/api/admin/pedidos', null)).status, 401);
+  assert.equal((await f.request('/api/admin/pedidos')).status, 403);
+  const saved = await f.order();
+  assert.equal((await f.request('/api/pedidos/' + saved._id, 'c')).status, 404);
+  assert.equal((await f.ownCancel(saved._id, 'c')).status, 404);
+  assert.equal((await f.action(saved._id, 'pagar', 'a')).status, 403);
+  assert.equal((await f.action(saved._id, 'pagar', null)).status, 401);
+  assert.equal((await f.post('/api/pedidos/' + saved._id + '/pagar', {})).status, 404);
+  assert.equal((await (await f.request('/api/pedidos', 'b')).json()).pedidos.length, 0);
+  const admin = (await (await f.request('/api/admin/pedidos', 'b')).json()).pedidos[0];
+  assert.deepEqual(admin.comprador, { nombre: 'Persona a', correo: 'a@example.invalid' });
+  assert.equal(admin.userId, undefined); assert.equal(admin.clave, undefined);
+});
+
+test('misma clave concurrente reserva una sola vez; cambiar contenido da conflicto', async t => {
+  const f = await fixture(t), key = randomUUID();
   const results = await Promise.all([f.create([item()], key), f.create([item()], key), f.create([item()], key)]);
-  assert.deepEqual(results.map(response => response.status).sort(), [200, 200, 201]);
-  const orders = await Promise.all(results.map(response => response.json())); assert.equal(new Set(orders.map(body => body.pedido._id)).size, 1);
-  assert.equal((await f.create([item(productId, 3)], key)).status, 409);
-  assert.equal(f.client.rows('pedidos').length, 1);
-  assert.equal((await f.create([item()], key, 'b')).status, 201);
-  assert.equal(f.client.rows('pedidos').length, 2);
-  const index = f.client.operations.find(op => op.name === 'pedidos' && op.method === 'createIndex' && op.options?.unique);
-  assert.deepEqual(index.keys, { userId: 1, clave: 1 });
-});
-
-test('respuesta perdida al crear se recupera con la misma clave incluso si el producto ya no está disponible', async t => {
-  const f = await fixture(t); const key = randomUUID(); const actual = f.db.createOrder;
-  f.db.createOrder = async (...args) => { await actual(...args); throw new Error('secret'); };
-  const failed = await f.create([item()], key); assert.equal(failed.status, 503); assert.equal((await failed.text()).includes('secret'), false);
-  f.db.createOrder = actual; await f.db.updateProduct(productId, 1, { disponible: false });
-  const retry = await f.create([item()], key); assert.equal(retry.status, 200); assert.equal(f.client.rows('pedidos').length, 1);
-});
-
-test('rechazo mantiene pendiente y stock; aprobación posterior y reintentos descuentan una sola vez', async t => {
-  const f = await fixture(t); const id = (await (await f.create()).json()).pedido._id;
-  const rejected = await f.pay(id, 'rechazado'); assert.equal(rejected.status, 200);
-  assert.equal((await rejected.json()).pedido.estado, 'pendiente'); assert.equal(f.product().stock, 10);
-  const approvals = await Promise.all([f.pay(id), f.pay(id), f.pay(id)]); assert.deepEqual(approvals.map(response => response.status), [200, 200, 200]);
-  const bodies = await Promise.all(approvals.map(response => response.json())); assert.deepEqual(bodies[0].pedido, bodies[2].pedido);
+  assert.deepEqual(results.map(r => r.status).sort(), [200, 200, 201]);
+  const bodies = await Promise.all(results.map(r => r.json()));
+  assert.equal(new Set(bodies.map(r => r.pedido._id)).size, 1);
   assert.equal(f.product().stock, 8); assert.equal(f.product().version, 2);
-  assert.equal(bodies[0].pedido.pagoSimulado.monto, 300000); assert.equal(bodies[0].pedido.pagoSimulado.tipo, 'simulado');
-  assert.equal((await f.pay(id, 'rechazado')).status, 409); assert.equal(f.product().stock, 8);
+  assert.equal((await f.create([item(productId, 3)], key)).status, 409);
+  assert.equal((await f.create([item()], key, 'c')).status, 201);
+  assert.equal(f.product().stock, 6);
 });
 
-test('dos pedidos compiten por el último stock: solo uno se paga y el otro permanece pendiente', async t => {
+test('compras concurrentes compiten por las últimas unidades sin sobreventa', async t => {
   const f = await fixture(t); await f.request('/api/productos'); await f.db.updateProduct(productId, 1, { stock: 2 });
-  const first = (await (await f.create()).json()).pedido, second = (await (await f.create([item()], randomUUID(), 'b')).json()).pedido;
-  const results = await Promise.all([f.pay(first._id), f.pay(second._id, 'aprobado', 'b')]);
-  assert.deepEqual(results.map(response => response.status).sort(), [200, 409]); assert.equal(f.product().stock, 0);
-  assert.deepEqual(f.client.rows('pedidos').map(order => order.estado).sort(), ['pagado', 'pendiente']);
+  const results = await Promise.all([f.create(), f.create([item()], randomUUID(), 'c')]);
+  assert.deepEqual(results.map(r => r.status).sort(), [201, 409]);
+  assert.equal(f.product().stock, 0); assert.equal(f.client.rows('pedidos').length, 1);
 });
 
-test('falta de stock en un artículo revierte los descuentos anteriores de todo el pedido', async t => {
-  const f = await fixture(t); const otherId = initialProducts[1]._id;
-  const id = (await (await f.create([item(), item(otherId, 2)])).json()).pedido._id;
+test('falta de stock o producto deshabilitado revierte toda la compra', async t => {
+  const f = await fixture(t), otherId = initialProducts[1]._id; await f.request('/api/productos');
   await f.db.updateProduct(otherId, 1, { stock: 1 });
-  assert.equal((await f.pay(id)).status, 409); assert.equal(f.product().stock, 10); assert.equal(f.product(otherId).stock, 1);
-  assert.equal(f.client.rows('pedidos')[0].estado, 'pendiente'); assert.equal(f.client.rows('pedidos')[0].pagoSimulado, null);
-  await f.db.updateProduct(otherId, 2, { stock: 5 }); assert.equal((await f.pay(id)).status, 200);
-  assert.equal(f.product().stock, 8); assert.equal(f.product(otherId).stock, 3);
-});
-
-test('producto deshabilitado bloquea creación y aprobación; el descuento invalida versiones administrativas antiguas', async t => {
-  const f = await fixture(t); const id = (await (await f.create()).json()).pedido._id;
-  await f.db.updateProduct(productId, 1, { disponible: false });
-  assert.equal((await f.create()).status, 409); assert.equal((await f.pay(id)).status, 409); assert.equal(f.product().stock, 10);
-  await f.db.updateProduct(productId, 2, { disponible: true }); assert.equal((await f.pay(id)).status, 200);
-  const stale = await f.post(`/api/admin/productos/${productId}/disponibilidad`, { disponible: false, version: 3 }, 'b');
-  assert.equal(stale.status, 409); assert.equal(f.product().stock, 8);
-});
-
-test('fallo en la escritura de aprobación revierte inventario; respuesta perdida tras commit se recupera sin otro descuento', async t => {
-  const f = await fixture(t); const id = (await (await f.create()).json()).pedido._id;
-  const actualClientDb = f.client.db;
-  f.client.db = () => ({ collection(name) {
-    const collection = actualClientDb().collection(name);
-    if (name === 'pedidos') collection.findOneAndUpdate = async () => { throw new Error('secret'); };
-    return collection;
-  } });
-  const failed = await f.pay(id); assert.equal(failed.status, 503); assert.equal((await failed.text()).includes('secret'), false); assert.equal(f.product().stock, 10);
-  f.client.db = actualClientDb;
-  const actualPay = f.db.simulateOrderPayment; f.db.simulateOrderPayment = async (...args) => { await actualPay(...args); throw new Error('secret'); };
-  assert.equal((await f.pay(id)).status, 503); assert.equal(f.product().stock, 8);
-  f.db.simulateOrderPayment = actualPay; assert.equal((await f.pay(id)).status, 200); assert.equal(f.product().stock, 8);
-});
-
-test('validación y origen rechazan precios, usuarios, cantidades, claves e inyección', async t => {
-  const f = await fixture(t); const key = randomUUID();
-  for (const body of [null, [], {}, { clave: 'incorrecta', items: [item()] }, { clave: key, items: [] }, { clave: key, items: Array(21).fill(item()) }, { clave: key, items: [item(), item()] }, { clave: key, items: [item(productId, 0)] }, { clave: key, items: [item(productId, 100)] }, { clave: key, items: [item(productId, '2')] }, { clave: key, items: [{ ...item(), precio: 1 }] }, { clave: key, items: [item()], total: 1 }, { clave: key, items: [item()], userId: bId }, { clave: key, items: [item({ $ne: null })] }]) assert.equal((await f.post('/api/pedidos', body)).status, 400);
-  assert.equal((await f.post('/api/pedidos', { clave: key, items: [item()] }, 'a', { Origin: 'https://otro.example' })).status, 403);
-  const id = (await (await f.create()).json()).pedido._id;
-  for (const body of [null, {}, { resultado: { $ne: null } }, { resultado: 'otro' }, { resultado: 'aprobado', monto: 1 }, { resultado: 'aprobado', userId: bId }]) assert.equal((await f.post(`/api/pedidos/${id}/pago-simulado`, body)).status, 400);
-  assert.equal((await f.post(`/api/pedidos/${id}/pago-simulado`, { resultado: 'aprobado' }, 'a', { Origin: 'https://otro.example' })).status, 403);
+  assert.equal((await f.create([item(), item(otherId, 2)])).status, 409);
+  assert.equal(f.product().stock, 10); assert.equal(f.client.rows('pedidos').length, 0);
+  await f.db.updateProduct(otherId, 2, { disponible: false });
+  assert.equal((await f.create([item(), item(otherId, 1)])).status, 409);
   assert.equal(f.product().stock, 10);
 });
 
-test('historial pagina y filtra solo los propios pedidos, conserva comprobantes y no expone claves ni actores', async t => {
-  const f = await fixture(t); const original = (await (await f.create()).json()).pedido;
-  await f.pay(original._id);
-  const stored = f.client.rows('pedidos')[0]; stored.pagoSimulado.secreto = 'secret';
-  for (let i = 1; i <= 22; i++) f.client.rows('pedidos').push({ ...stored, _id: new ObjectId(i.toString(16).padStart(24, '0')), clave: randomUUID(), estado: 'pendiente', userId: i === 1 ? bId : aId });
-  const firstResponse = await f.request('/api/pedidos'); assert.equal(firstResponse.headers.get('cache-control'), 'no-store'); const first = await firstResponse.json();
-  assert.equal(first.pedidos.length, 20); assert.ok(first.siguiente);
-  const second = await (await f.request(`/api/pedidos?despues=${first.siguiente}`)).json(); assert.equal(second.pedidos.length, 2);
-  assert.equal(new Set([...first.pedidos, ...second.pedidos].map(order => order._id)).size, 22);
-  assert.equal((await (await f.request('/api/pedidos?estado=pagado')).json()).pedidos.length, 1);
-  assert.equal((await (await f.request('/api/pedidos', 'b')).json()).pedidos.length, 1);
-  const detail = await f.request(`/api/pedidos/${original._id}`); const text = await detail.text(); assert.equal(text.includes('secret'), false); assert.equal(text.includes('clave'), false); assert.equal(text.includes('userId'), false);
-  assert.equal((await f.request('/api/pedidos?estado=otro')).status, 400); assert.equal((await f.request('/api/pedidos?despues=incorrecto')).status, 400);
+test('cancelar pendiente devuelve inventario una sola vez, incluso con producto deshabilitado', async t => {
+  const f = await fixture(t), saved = await f.order();
+  await f.db.updateProduct(productId, 2, { disponible: false });
+  const results = await Promise.all([f.ownCancel(saved._id), f.ownCancel(saved._id), f.action(saved._id, 'cancelar')]);
+  assert.ok(results.every(r => r.status === 200)); assert.equal(f.product().stock, 10);
+  const cancelled = (await results[0].json()).pedido;
+  assert.equal(cancelled.estado, 'cancelado'); assert.ok(cancelled.canceladoEn);
+  assert.equal((await f.action(saved._id, 'pagar')).status, 409);
+  assert.equal((await f.create([item()], f.client.rows('pedidos')[0].clave)).status, 200);
+  assert.equal(f.product().stock, 10);
 });
 
-test('servidor sin soporte transaccional falla seguro y no ejecuta descuentos independientes', async t => {
-  const f = await fixture(t); const id = (await (await f.create()).json()).pedido._id;
-  f.client.startSession = () => ({ async withTransaction() { throw new Error('Transactions unsupported secret'); }, async endSession() {} });
-  const response = await f.pay(id); assert.equal(response.status, 503); assert.equal((await response.text()).includes('secret'), false); assert.equal(f.product().stock, 10);
+test('administrador confirma pago y entrega sin volver a descontar stock; reintentos conservan fechas', async t => {
+  const f = await fixture(t), saved = await f.order();
+  assert.equal((await f.action(saved._id, 'entregar')).status, 409);
+  const results = await Promise.all([f.action(saved._id, 'pagar'), f.action(saved._id, 'pagar')]);
+  assert.ok(results.every(r => r.status === 200));
+  const paid = (await results[0].json()).pedido; assert.equal(paid.estado, 'pagado'); assert.ok(paid.pagadoEn);
+  assert.equal(f.product().stock, 8); assert.equal(f.product().version, 2);
+  assert.equal((await f.ownCancel(saved._id)).status, 409);
+  assert.equal((await f.action(saved._id, 'cancelar')).status, 409);
+  f.clock.value = new Date('2026-10-06T15:00:00Z');
+  const delivered = (await (await f.action(saved._id, 'entregar')).json()).pedido;
+  assert.equal(delivered.estado, 'entregado'); assert.equal(delivered.pagadoEn, paid.pagadoEn);
+  assert.equal((await (await f.action(saved._id, 'entregar')).json()).pedido.entregadoEn, delivered.entregadoEn);
+  assert.equal((await (await f.action(saved._id, 'pagar')).json()).pedido.estado, 'entregado');
+  assert.equal(f.product().stock, 8);
+});
+
+test('pago y cancelación concurrentes conservan una sola decisión e inventario coherente', async t => {
+  const f = await fixture(t), saved = await f.order();
+  const results = await Promise.all([f.action(saved._id, 'pagar'), f.ownCancel(saved._id)]);
+  assert.deepEqual(results.map(r => r.status).sort(), [200, 409]);
+  const state = f.client.rows('pedidos')[0].estado;
+  assert.ok(['pagado', 'cancelado'].includes(state)); assert.equal(f.product().stock, state === 'cancelado' ? 10 : 8);
+});
+
+test('fallo de escritura de compra o cancelación revierte el inventario completo', async t => {
+  const f = await fixture(t), actual = f.client.db;
+  f.client.db = () => ({ collection(name) { const c = actual().collection(name); if (name === 'pedidos') c.insertOne = async () => { throw new Error('secret'); }; return c; } });
+  const failed = await f.create(); assert.equal(failed.status, 503); assert.equal((await failed.text()).includes('secret'), false);
+  assert.equal(f.product().stock, 10);
+  f.client.db = actual; const saved = await f.order();
+  f.client.db = () => ({ collection(name) { const c = actual().collection(name); if (name === 'pedidos') c.findOneAndUpdate = async () => { throw new Error('secret'); }; return c; } });
+  assert.equal((await f.ownCancel(saved._id)).status, 503);
+  assert.equal(f.product().stock, 8); assert.equal(f.client.rows('pedidos')[0].estado, 'pendiente');
+});
+
+test('respuesta perdida tras compra o cancelación se recupera sin duplicar descuentos ni devoluciones', async t => {
+  const f = await fixture(t), key = randomUUID(), actual = f.db.createOrder;
+  f.db.createOrder = async (...args) => { await actual(...args); throw new Error('secret'); };
+  assert.equal((await f.create([item()], key)).status, 503); assert.equal(f.product().stock, 8);
+  f.db.createOrder = actual; await f.db.updateProduct(productId, 2, { disponible: false });
+  const retry = await f.create([item()], key); assert.equal(retry.status, 200);
+  const saved = (await retry.json()).pedido, change = f.db.changeOrder;
+  f.db.changeOrder = async (...args) => { await change(...args); throw new Error('secret'); };
+  assert.equal((await f.ownCancel(saved._id)).status, 503); assert.equal(f.product().stock, 10);
+  f.db.changeOrder = change; assert.equal((await f.ownCancel(saved._id)).status, 200); assert.equal(f.product().stock, 10);
+});
+
+test('validación y origen rechazan importes manipulados, otros usuarios, claves y cantidades inválidas', async t => {
+  const f = await fixture(t), key = randomUUID();
+  const good = { clave: key, items: [item()], totalEsperado: 300000 };
+  for (const body of [null, [], {}, { ...good, clave: 'otro' }, { ...good, items: [] }, { ...good, items: [item(), item()] }, { ...good, items: [item(productId, 0)] }, { ...good, items: [item(productId, 100)] }, { ...good, items: [{ ...item(), precio: 1 }] }, { ...good, userId: ids.b }, { ...good, totalEsperado: '300000' }, { ...good, totalEsperado: 0 }]) assert.equal((await f.post('/api/pedidos', body)).status, 400);
+  assert.equal((await f.post('/api/pedidos', good, 'a', { Origin: 'https://otro.example' })).status, 403);
+  assert.equal((await f.post('/api/pedidos', { ...good, totalEsperado: 1 })).status, 409);
+  const saved = await f.order();
+  assert.equal((await f.post('/api/admin/pedidos/' + saved._id + '/pagar', { total: 1 }, 'b')).status, 400);
+  assert.equal((await f.post('/api/admin/pedidos/' + saved._id + '/pagar', {}, 'b', { Origin: 'https://otro.example' })).status, 403);
+});
+
+test('historial propio y administrativo paginan, filtran y ocultan claves y auditoría', async t => {
+  const f = await fixture(t), saved = await f.order();
+  const stored = f.client.rows('pedidos')[0];
+  for (let i = 1; i <= 22; i++) f.client.rows('pedidos').push({ ...stored, _id: new ObjectId(i.toString(16).padStart(24, '0')), clave: randomUUID(), userId: i === 1 ? ids.c : ids.a });
+  const firstResponse = await f.request('/api/pedidos'); assert.equal(firstResponse.headers.get('cache-control'), 'no-store');
+  const first = await firstResponse.json(), second = await (await f.request('/api/pedidos?despues=' + first.siguiente)).json();
+  assert.equal(first.pedidos.length, 20); assert.equal(second.pedidos.length, 2);
+  assert.equal(new Set([...first.pedidos, ...second.pedidos].map(p => p._id)).size, 22);
+  assert.equal((await (await f.request('/api/pedidos', 'c')).json()).pedidos.length, 1);
+  await f.action(saved._id, 'pagar'); await f.action(saved._id, 'entregar');
+  assert.equal((await (await f.request('/api/pedidos?estado=entregado')).json()).pedidos.length, 1);
+  assert.equal((await (await f.request('/api/admin/pedidos?estado=pendiente', 'b')).json()).pedidos.length, 20);
+  const detail = await (await f.request('/api/pedidos/' + saved._id)).text();
+  for (const field of ['userId', 'clave', 'pagadoPor', 'entregadoPor']) assert.equal(detail.includes(field), false);
+  assert.equal((await f.request('/api/pedidos?estado=otro')).status, 400);
+  assert.equal((await f.request('/api/admin/pedidos?despues=otro', 'b')).status, 400);
+});
+
+test('pedidos simulados anteriores permanecen legibles sin convertirse en compras ni permitir pagos', async t => {
+  const f = await fixture(t), saved = await f.order(), stored = f.client.rows('pedidos')[0];
+  stored.tipo = 'simulado'; stored.pagoSimulado = { tipo: 'simulado', resultado: 'aprobado', monto: stored.total, moneda: 'COP', registradaEn: stored.creadoEn, secreto: 'secret' };
+  assert.equal((await f.action(saved._id, 'pagar')).status, 409);
+  assert.equal((await f.ownCancel(saved._id)).status, 409);
+  assert.equal((await f.create([item()], stored.clave)).status, 409);
+  assert.equal((await (await f.request('/api/admin/pedidos', 'b')).json()).pedidos.length, 0);
+  const detail = await (await f.request('/api/pedidos/' + saved._id)).text();
+  assert.equal(detail.includes('secret'), false); assert.ok(detail.includes('simulado'));
+});
+
+test('sin soporte transaccional falla seguro sin compras o reservas independientes', async t => {
+  const f = await fixture(t);
+  f.client.startSession = () => ({ async withTransaction() { throw new Error('secret'); }, async endSession() {} });
+  const response = await f.create(); assert.equal(response.status, 503); assert.equal((await response.text()).includes('secret'), false);
+  assert.equal(f.product().stock, 10); assert.equal(f.client.rows('pedidos').length, 0);
 });

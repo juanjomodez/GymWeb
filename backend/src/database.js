@@ -20,6 +20,7 @@ export function createDatabase({ uri, database }, { clientFactory = (connection,
     orderIndexes ??= Promise.all([
       orders.createIndex({ userId: 1, clave: 1 }, { unique: true }),
       orders.createIndex({ userId: 1, estado: 1, _id: 1 }),
+      orders.createIndex({ tipo: 1, estado: 1, _id: 1 }),
     ]).catch(error => { orderIndexes = undefined; throw error; });
     await orderIndexes;
   }
@@ -34,6 +35,7 @@ export function createDatabase({ uri, database }, { clientFactory = (connection,
     } finally { await session.endSession(); }
   }
   function existingOrder(order, items) {
+    if (order.tipo !== 'compra') throw orderError(409, 'Este intento pertenece a un pedido de prueba anterior. Inicia una nueva compra.');
     if (orderIntent(order.items) !== orderIntent(items)) throw orderError(409, 'Esta clave ya pertenece a un pedido con otros productos o cantidades. Recupera el intento anterior antes de iniciar otro.');
     return { order, created: false };
   }
@@ -61,14 +63,14 @@ export function createDatabase({ uri, database }, { clientFactory = (connection,
   return {
     ...familyRenewals,
     ...createTrainingDatabase(getDb, transaction, familyRenewals.resolveMembershipAccess),
-    async listOrders(userId, { despues, estado, limit }) {
+    async listOrders(userId, { despues, estado, tipo, limit }) {
       await ensureOrders();
-      return getDb().collection('pedidos').find({ userId, ...(estado ? { estado } : {}), ...(despues ? { _id: { $gt: new ObjectId(despues) } } : {}) }).sort({ _id: 1 }).limit(limit).toArray();
+      return getDb().collection('pedidos').find({ ...(userId === undefined ? {} : { userId }), ...(tipo ? { tipo } : {}), ...(estado ? { estado } : {}), ...(despues ? { _id: { $gt: new ObjectId(despues) } } : {}) }).sort({ _id: 1 }).limit(limit).toArray();
     },
     async findOrder(id, userId) {
       return getDb().collection('pedidos').findOne({ _id: new ObjectId(id), userId });
     },
-    async createOrder(userId, clave, input, instant) {
+    async createOrder(userId, clave, input, instant, totalEsperado, comprador) {
       await ensureOrders();
       const orders = getDb().collection('pedidos');
       const previous = await orders.findOne({ userId, clave });
@@ -85,8 +87,16 @@ export function createDatabase({ uri, database }, { clientFactory = (connection,
             if (!product || !Number.isInteger(product.stock) || product.stock < item.cantidad) throw orderError(409, 'Un producto fue retirado o no tiene suficientes existencias. Actualiza el carrito antes de crear el pedido.');
             if (!Number.isSafeInteger(product.precio) || product.precio < 1 || product.precio > 100000000 || product.moneda !== 'COP') throw new Error('Condiciones de producto inválidas');
             items.push({ productoId: item.productoId, nombre: product.nombre, imagen: product.imagen, precioUnitario: product.precio, cantidad: item.cantidad, subtotal: product.precio * item.cantidad });
+            const reserved = await getDb().collection('productos').findOneAndUpdate(
+              { _id: product._id, disponible: true, stock: { $gte: item.cantidad }, version: product.version },
+              { $inc: { stock: -item.cantidad, version: 1 }, $set: { actualizadaEn: instant, stockActualizadoEn: instant, stockActualizadoPor: userId } },
+              { session, returnDocument: 'after' },
+            );
+            if (!reserved) throw orderError(409, 'Las existencias cambiaron. Actualiza el carrito antes de comprar.');
           }
-          const order = { _id: id, userId, clave, tipo: 'simulado', estado: 'pendiente', items, total: items.reduce((total, item) => total + item.subtotal, 0), moneda: 'COP', creadoEn: instant, actualizadoEn: instant, pagoSimulado: null };
+          const total = items.reduce((sum, item) => sum + item.subtotal, 0);
+          if (total !== totalEsperado) throw orderError(409, 'El precio cambió. Actualiza el total del carrito y confirma nuevamente la compra.');
+          const order = { _id: id, userId, clave, tipo: 'compra', estado: 'pendiente', items, total, moneda: 'COP', creadoEn: instant, actualizadoEn: instant, inventario: 'reservado', comprador: { nombre: comprador.nombre, correo: comprador.correo }, pagoSimulado: null };
           await orders.insertOne(order, { session });
           return { order, created: true };
         });
@@ -98,33 +108,35 @@ export function createDatabase({ uri, database }, { clientFactory = (connection,
         throw error;
       }
     },
-    async simulateOrderPayment(id, userId, resultado, instant) {
+    async changeOrder(id, action, actorId, instant, admin = false) {
       await ensureOrders();
       return transaction(async session => {
         const orders = getDb().collection('pedidos');
-        const filter = { _id: new ObjectId(id), userId };
+        const filter = { _id: new ObjectId(id), ...(admin ? {} : { userId: actorId }) };
         const order = await orders.findOne(filter, { session });
-        if (!order) throw orderError(404, 'No existe ese pedido en tu cuenta.');
-        if (order.tipo !== 'simulado') throw orderError(409, 'Solo se admite el pago de pedidos simulados.');
-        if (order.estado === 'pagado' && order.pagoSimulado?.resultado === 'aprobado') {
-          if (resultado === 'aprobado') return order;
-          throw orderError(409, 'Un pedido ya pagado no puede rechazarse.');
-        }
-        if (order.estado !== 'pendiente') throw orderError(409, 'Este pedido no está pendiente.');
-        if (resultado === 'aprobado') {
+        if (!order) throw orderError(404, 'No existe esa compra.');
+        if (order.tipo !== 'compra') throw orderError(409, 'Los pedidos de prueba anteriores solo están disponibles para consulta.');
+        if (!['pagar', 'entregar', 'cancelar'].includes(action) || !admin && action !== 'cancelar') throw orderError(403, 'Operación no permitida.');
+        const target = { pagar: 'pagado', entregar: 'entregado', cancelar: 'cancelado' }[action];
+        if (order.estado === target || action === 'pagar' && order.estado === 'entregado') return order;
+        const expected = action === 'entregar' ? 'pagado' : 'pendiente';
+        if (order.estado !== expected) throw orderError(409, action === 'cancelar' ? 'Solo puedes cancelar compras pendientes de pago.' : action === 'entregar' ? 'Confirma el pago antes de entregar la compra.' : 'Esta compra ya no está pendiente de pago.');
+        if (action === 'cancelar') {
+          if (order.inventario !== 'reservado') throw orderError(409, 'La compra no tiene una reserva de inventario válida.');
           for (const item of order.items) {
             const updated = await getDb().collection('productos').findOneAndUpdate(
-              { _id: new ObjectId(item.productoId), disponible: true, stock: { $gte: item.cantidad } },
-              { $inc: { stock: -item.cantidad, version: 1 }, $set: { actualizadaEn: instant, stockActualizadoEn: instant, stockActualizadoPor: userId } },
+              { _id: new ObjectId(item.productoId) },
+              { $inc: { stock: item.cantidad, version: 1 }, $set: { actualizadaEn: instant, stockActualizadoEn: instant, stockActualizadoPor: actorId } },
               { session, returnDocument: 'after' },
             );
-            if (!updated) throw orderError(409, 'No se puede aprobar: un producto fue retirado o no tiene suficientes existencias. No se descontó ningún artículo; el pedido sigue pendiente.');
+            if (!updated) throw orderError(409, 'No se pudo devolver un producto al inventario. Solicita al administrador revisar la compra.');
           }
         }
-        const updated = await orders.findOneAndUpdate({ ...filter, estado: 'pendiente' }, {
-          $set: { estado: resultado === 'aprobado' ? 'pagado' : 'pendiente', actualizadoEn: instant, pagoSimulado: { tipo: 'simulado', resultado, monto: order.total, moneda: order.moneda, registradaEn: instant } },
+        const audit = action === 'pagar' ? { pagadoEn: instant, pagadoPor: actorId, inventario: 'vendido' } : action === 'entregar' ? { entregadoEn: instant, entregadoPor: actorId } : { canceladoEn: instant, canceladoPor: actorId, inventario: 'liberado' };
+        const updated = await orders.findOneAndUpdate({ ...filter, estado: expected }, {
+          $set: { estado: target, actualizadoEn: instant, ...audit },
         }, { session, returnDocument: 'after' });
-        if (!updated) throw orderError(409, 'El pedido cambió. Actualiza Mis pedidos.');
+        if (!updated) throw orderError(409, 'La compra cambió. Actualiza el historial.');
         return updated;
       });
     },

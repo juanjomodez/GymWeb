@@ -92,23 +92,38 @@
                 <button type="button" id="renovaciones-admin-mas" hidden>Ver más solicitudes de renovación</button>
             </section>
             <section id="mis-pedidos" class="cuenta-seccion" aria-labelledby="pedidos-titulo">
-                <h2 id="pedidos-titulo">Mis pedidos</h2>
-                <p>Revisa el importe guardado antes de simular el pago. Los pedidos pendientes no reservan existencias; no se realizan cobros reales.</p>
+                <h2 id="pedidos-titulo">Mis compras</h2>
+                <p>Tus productos quedan reservados. Paga y recógelos en el gimnasio. Puedes cancelar una compra mientras esté pendiente de pago.</p>
                 <div class="admin-controles">
-                    <label for="pedidos-estado">Estado del pedido</label>
+                    <label for="pedidos-estado">Estado de la compra</label>
                     <select id="pedidos-estado">
-                        <option value="">Todos los pedidos</option>
-                        <option value="pendiente">Pendientes</option>
-                        <option value="pagado">Pagados en simulación</option>
+                        <option value="">Todas las compras</option>
+                        <option value="pendiente">Pendientes de pago</option>
+                        <option value="pagado">Pagados</option>
+                        <option value="entregado">Entregados</option>
+                        <option value="cancelado">Cancelados</option>
                     </select>
-                    <button type="button" id="pedidos-actualizar">Actualizar pedidos</button>
+                    <button type="button" id="pedidos-actualizar">Actualizar compras</button>
                     <a href="index.html#productos">Ir a la tienda</a>
                 </div>
-                <p id="pedidos-mensaje" role="status" aria-live="polite">Cargando pedidos…</p>
+                <p id="pedidos-mensaje" role="status" aria-live="polite">Cargando compras…</p>
                 <p id="pedidos-accion-mensaje" role="status" aria-live="polite"></p>
                 <div id="pedido-destacado" class="cuenta-tarjetas"></div>
                 <div id="pedidos-lista" class="cuenta-tarjetas"></div>
-                <button type="button" id="pedidos-mas" hidden>Ver más pedidos</button>
+                <button type="button" id="pedidos-mas" hidden>Ver más compras</button>
+            </section>
+            <section id="administracion-pedidos" class="cuenta-seccion" hidden aria-labelledby="pedidos-admin-titulo">
+                <h2 id="pedidos-admin-titulo">Administrar compras</h2>
+                <p>Confirma el pago cuando lo recibas en el gimnasio y registra la entrega al comprador. Cancelar una compra pendiente devuelve sus unidades al inventario.</p>
+                <div class="admin-controles">
+                    <label for="pedidos-admin-estado">Estado de las compras</label>
+                    <select id="pedidos-admin-estado"><option value="">Todas</option><option value="pendiente">Pendientes de pago</option><option value="pagado">Pagadas, por entregar</option><option value="entregado">Entregadas</option><option value="cancelado">Canceladas</option></select>
+                    <button type="button" id="pedidos-admin-actualizar">Actualizar compras</button>
+                </div>
+                <p id="pedidos-admin-mensaje" role="status" aria-live="polite"></p>
+                <p id="pedidos-admin-accion-mensaje" role="status" aria-live="polite"></p>
+                <div id="pedidos-admin-lista" class="cuenta-tarjetas"></div>
+                <button type="button" id="pedidos-admin-mas" hidden>Ver más compras</button>
             </section>
             <section id="mis-rutinas" class="cuenta-seccion" aria-labelledby="rutinas-titulo">
                 <h2 id="rutinas-titulo">Mis rutinas</h2>
@@ -130,7 +145,7 @@
             <section id="mis-reservas" class="cuenta-seccion" aria-labelledby="reservas-titulo">
                 <h2 id="reservas-titulo">Citas con entrenadores</h2>
                 <p>Premium vigente permite reservar una sesión individual de 60 minutos. Todas las fechas se muestran en horario de Bogotá.</p>
-                <div class="admin-controles">
+                <div class="admin-controles" id="reserva-controles" hidden>
                     <label for="reserva-entrenador">Entrenador para reservar</label>
                     <select id="reserva-entrenador"><option value="">Todos los entrenadores</option></select>
                     <button type="button" id="reserva-entrenadores-mas" hidden>Cargar más entrenadores</button>
@@ -153,12 +168,12 @@
             <section id="chat-miembro" class="cuenta-seccion chat-panel" aria-labelledby="chat-miembro-titulo">
                 <h2 id="chat-miembro-titulo">Mensajes con entrenadores</h2>
                 <p>Conversaciones privadas para Premium vigente. Pulsa Actualizar para ver respuestas nuevas.</p>
-                <div class="admin-controles">
+                <div class="admin-controles" id="chat-miembro-controles" hidden>
                     <label for="chat-entrenador">Entrenador para conversar</label>
                     <select id="chat-entrenador"><option value="">Selecciona un entrenador</option></select>
                     <button type="button" id="chat-abrir">Abrir conversación</button>
                 </div>
-                <button type="button" data-chat-refresh>Actualizar conversaciones</button>
+                <button type="button" data-chat-refresh hidden>Actualizar conversaciones</button>
                 <p data-chat-status role="status" aria-live="polite"></p>
                 <div data-chat-list class="cuenta-tarjetas"></div>
                 <button type="button" data-chat-more hidden>Ver más conversaciones</button>

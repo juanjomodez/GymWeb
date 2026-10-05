@@ -25,20 +25,21 @@ function setupProductStore() {
     const products = new Map(), cart = new Map();
     let next = null, loading = false, verifying = false;
     let creating = false, checkoutMode = 'checking', restored = false, openRestored = false;
-    const attemptKey = 'gym_pedido_intento';
+    const attemptKey = 'gym_compra_intento_v1';
     let orderAttempt = readAttempt();
     function readAttempt() {
         try {
             const value = JSON.parse(sessionStorage.getItem(attemptKey));
             if (!value || !/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(value.clave) || !Array.isArray(value.items) || !value.items.length || value.items.length > 20 || new Set(value.items.map(item => item.productoId)).size !== value.items.length || value.items.some(item => !/^[a-f0-9]{24}$/.test(item.productoId) || !Number.isInteger(item.cantidad) || item.cantidad < 1 || item.cantidad > 99)) return null;
-            return { clave: value.clave, items: value.items.map(({ productoId, cantidad }) => ({ productoId, cantidad })), enviado: value.enviado === true };
+            if (!Number.isSafeInteger(value.totalEsperado) || value.totalEsperado < 1) return null;
+            return { clave: value.clave, items: value.items.map(({ productoId, cantidad }) => ({ productoId, cantidad })), totalEsperado: value.totalEsperado, enviado: value.enviado === true };
         } catch { return null; }
     }
     function rememberAttempt() {
         try { if (orderAttempt) sessionStorage.setItem(attemptKey, JSON.stringify(orderAttempt)); else sessionStorage.removeItem(attemptKey); } catch { /* El intento también se conserva en memoria para reintentar en esta pestaña. */ }
     }
     const locked = () => creating || orderAttempt?.enviado === true;
-    function invalidateAttempt() { if (orderAttempt && !orderAttempt.enviado) { orderAttempt = null; rememberAttempt(); } }
+    function invalidateAttempt() { confirmation.checked = false; if (orderAttempt && !orderAttempt.enviado) { orderAttempt = null; rememberAttempt(); } }
     const intent = items => JSON.stringify(items.map(({ productoId, cantidad }) => ({ productoId, cantidad })).sort((a, b) => a.productoId.localeCompare(b.productoId)));
     const cartButton = document.createElement('button');
     cartButton.type = 'button'; cartButton.className = 'carrito-flotante';
@@ -48,18 +49,22 @@ function setupProductStore() {
     const panel = document.createElement('aside'); panel.className = 'panel-carrito'; panel.id = 'panel-carrito';
     panel.setAttribute('role', 'dialog'); panel.setAttribute('aria-modal', 'true'); panel.setAttribute('aria-labelledby', 'carrito-titulo');
     panel.hidden = true;
-    panel.innerHTML = '<div class="carrito-encabezado"><div><p class="carrito-kicker">GYMFLOW STORE</p><h2 id="carrito-titulo">Tu carrito</h2></div><button class="carrito-cerrar" type="button" aria-label="Cerrar carrito">×</button></div><div class="carrito-items" aria-live="polite"></div><div class="carrito-vacio"><h3>Tu carrito está vacío</h3><p>Agrega productos y aparecerán aquí.</p></div><div class="carrito-pie" hidden><div class="carrito-total"><span>Total estimado</span><strong></strong></div><button class="carrito-pagar" type="button">Actualizar total</button><button class="carrito-pagar carrito-crear" type="button">Crear pedido simulado</button><p class="carrito-nota">Crear el pedido no reserva unidades ni cobra dinero. Revisa su importe en Mis pedidos antes de simular el pago.</p><a href="micuenta.html#mis-pedidos">Ver Mis pedidos</a></div><p class="carrito-feedback" role="status" aria-live="polite"></p>';
+    panel.innerHTML = '<div class="carrito-encabezado"><div><p class="carrito-kicker">GYMFLOW STORE</p><h2 id="carrito-titulo">Tu carrito</h2></div><button class="carrito-cerrar" type="button" aria-label="Cerrar carrito">×</button></div><div class="carrito-items" aria-live="polite"></div><div class="carrito-vacio"><h3>Tu carrito está vacío</h3><p>Agrega productos y aparecerán aquí.</p></div><div class="carrito-pie" hidden><div class="carrito-total"><span>Total</span><strong></strong></div><button class="carrito-pagar" type="button">Actualizar total</button><label class="carrito-confirmacion"><input type="checkbox"><span></span></label><button class="carrito-pagar carrito-crear" type="button">Comprar</button><p class="carrito-nota">Tus productos quedan reservados al comprar. Paga y recógelos en el gimnasio. Puedes cancelar desde Mis compras mientras el pago esté pendiente.</p><a href="micuenta.html#mis-pedidos">Ver Mis compras</a></div><p class="carrito-feedback" role="status" aria-live="polite"></p>';
     document.body.append(backdrop, panel, cartButton);
     const feedback = panel.querySelector('.carrito-feedback');
     const verify = panel.querySelector('.carrito-pagar');
     const checkout = panel.querySelector('.carrito-crear');
+    const confirmation = panel.querySelector('.carrito-confirmacion input');
     function renderCart() {
         const count = [...cart.values()].reduce((total, item) => total + item.cantidad, 0);
         cartButton.querySelector('.carrito-contador').textContent = count;
         cartButton.setAttribute('aria-label', `Abrir carrito, ${count} productos`);
         panel.querySelector('.carrito-vacio').hidden = count > 0 || locked();
         panel.querySelector('.carrito-pie').hidden = count === 0 && !locked();
-        panel.querySelector('.carrito-total strong').textContent = orderAttempt?.enviado ? 'Por confirmar en Mis pedidos' : productCurrency([...cart.values()].reduce((total, item) => total + item.producto.precio * item.cantidad, 0));
+        panel.querySelector('.carrito-total strong').textContent = orderAttempt?.enviado ? 'Por confirmar en Mis compras' : productCurrency([...cart.values()].reduce((total, item) => total + item.producto.precio * item.cantidad, 0));
+        panel.querySelector('.carrito-confirmacion span').textContent = `Confirmo los productos y el total de ${productCurrency(orderAttempt?.enviado ? orderAttempt.totalEsperado : [...cart.values()].reduce((total, item) => total + item.producto.precio * item.cantidad, 0))}, con pago y recogida en el gimnasio.`;
+        confirmation.disabled = locked() || verifying || loading;
+        panel.querySelector('.carrito-confirmacion').hidden = orderAttempt?.enviado === true;
         const target = panel.querySelector('.carrito-items'); target.replaceChildren();
         for (const [id, item] of cart) {
             const row = document.createElement('article'); row.className = 'carrito-item';
@@ -90,7 +95,7 @@ function setupProductStore() {
         }
         verify.disabled = loading || locked() || verifying;
         checkout.disabled = creating || loading || verifying || ['checking', 'off'].includes(checkoutMode);
-        checkout.textContent = checkoutMode === 'off' ? 'Pedidos simulados deshabilitados' : checkoutMode === 'login' ? 'Iniciar sesión para crear el pedido' : orderAttempt?.enviado ? 'Recuperar pedido' : 'Crear pedido simulado';
+        checkout.textContent = checkoutMode === 'off' ? 'Compra no disponible' : checkoutMode === 'login' ? 'Iniciar sesión para comprar' : orderAttempt?.enviado ? 'Recuperar compra' : 'Comprar';
         for (const button of list.querySelectorAll('button')) button.disabled = loading || locked() || verifying || products.get(button.dataset.productId)?.stock === 0;
     }
     function storeCard(product) {
@@ -115,6 +120,7 @@ function setupProductStore() {
             const response = await fetch('/api/carrito/verificar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ items: [...cart].map(([productoId, item]) => ({ productoId, cantidad: item.cantidad })) }) });
             const body = await response.json();
             if (!response.ok) { feedback.textContent = body.message; return; }
+            invalidateAttempt();
             const pricesChanged = body.items.some(item => cart.get(item.producto._id)?.producto.precio !== item.producto.precio);
             cart.clear();
             for (const item of body.items) {
@@ -158,20 +164,24 @@ function setupProductStore() {
         if (creating || loading || verifying || ['checking', 'off'].includes(checkoutMode)) return;
         const items = orderAttempt?.enviado ? orderAttempt.items : [...cart].map(([productoId, item]) => ({ productoId, cantidad: item.cantidad }));
         if (!items.length) return;
-        if (!orderAttempt || intent(orderAttempt.items) !== intent(items)) orderAttempt = { clave: crypto.randomUUID(), items, enviado: false };
+        if (checkoutMode === 'login') {
+            orderAttempt ??= { clave: crypto.randomUUID(), items, totalEsperado: [...cart.values()].reduce((total, item) => total + item.producto.precio * item.cantidad, 0), enviado: false };
+            rememberAttempt(); window.location.assign('login.html?volver=tienda'); return;
+        }
+        if (!orderAttempt?.enviado && !confirmation.checked) { feedback.textContent = 'Confirma los productos, el total y el pago en el gimnasio antes de comprar.'; confirmation.focus(); return; }
+        if (!orderAttempt || intent(orderAttempt.items) !== intent(items)) orderAttempt = { clave: crypto.randomUUID(), items, totalEsperado: [...cart.values()].reduce((total, item) => total + item.producto.precio * item.cantidad, 0), enviado: false };
         rememberAttempt();
-        if (checkoutMode === 'login') { window.location.assign('login.html?volver=tienda'); return; }
-        creating = true; orderAttempt.enviado = true; rememberAttempt(); renderCart(); feedback.textContent = 'Confirmando el pedido simulado…';
+        creating = true; orderAttempt.enviado = true; rememberAttempt(); renderCart(); feedback.textContent = 'Registrando tu compra y reservando productos…';
         try {
-            const response = await fetch('/api/pedidos', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ clave: orderAttempt.clave, items: orderAttempt.items }) });
+            const response = await fetch('/api/pedidos', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ clave: orderAttempt.clave, items: orderAttempt.items, totalEsperado: orderAttempt.totalEsperado }) });
             if (response.status === 401) { window.location.assign('login.html?volver=tienda'); return; }
             const body = await response.json(); feedback.textContent = body.message;
             if (response.ok) {
                 orderAttempt = null; rememberAttempt(); cart.clear();
                 window.location.assign(`micuenta.html?pedido=${encodeURIComponent(body.pedido._id)}#mis-pedidos`);
-            } else if ([400, 409].includes(response.status)) { orderAttempt = null; rememberAttempt(); }
+            } else if ([400, 409].includes(response.status)) { orderAttempt = null; confirmation.checked = false; rememberAttempt(); }
             else if (response.status === 403) checkoutMode = 'off';
-        } catch { feedback.textContent = 'No se pudo confirmar el pedido. Pulsa Recuperar pedido con la misma cuenta o revisa Mis pedidos; se conserva el intento para evitar duplicados.'; }
+        } catch { feedback.textContent = 'No se pudo confirmar la compra. Pulsa Recuperar compra con la misma cuenta o revisa Mis compras; se conserva el intento para evitar duplicados.'; }
         finally { creating = false; renderCart(); }
     });
     async function restoreAttempt() {
@@ -184,7 +194,7 @@ function setupProductStore() {
         }));
         for (const item of values) if (item) cart.set(item.producto._id, item);
         restored = true; openRestored = true;
-        if (orderAttempt.enviado) feedback.textContent = 'Hay un pedido sin confirmar en esta pestaña. Pulsa Recuperar pedido con la misma cuenta o revisa Mis pedidos.';
+        if (orderAttempt.enviado) feedback.textContent = 'Hay una compra sin confirmar en esta pestaña. Pulsa Recuperar compra con la misma cuenta o revisa Mis compras.';
     }
     async function load(append = false) {
         if (creating || loading || verifying) return;
@@ -200,8 +210,8 @@ function setupProductStore() {
                 list.append(storeCard(product));
             }
             next = body.siguiente; more.hidden = !next;
-            const mode = await fetch('/api/pagos/simulacion', { cache: 'no-store' });
-            checkoutMode = mode.status === 401 ? 'login' : mode.ok && (await mode.json()).habilitada ? 'on' : 'off';
+            const mode = await fetch('/api/me', { cache: 'no-store' });
+            checkoutMode = mode.status === 401 ? 'login' : mode.ok ? 'on' : 'off';
             await restoreAttempt();
             status.textContent = list.children.length ? `${list.children.length} productos en el catálogo.` : 'No hay productos disponibles.';
             await verifyCart(true);

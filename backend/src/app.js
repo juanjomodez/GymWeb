@@ -24,14 +24,17 @@ export function createApp(database, { now = () => new Date(), environment = 'pro
   setupRoutines(app, database, requireUser, now);
   setupSimulatedPayments(app, database, requireUser, now, { environment, demoPayments });
   setupProducts(app, database, requireUser, now);
-  setupOrders(app, database, requireUser, now, { environment, demoPayments });
+  setupOrders(app, database, requireUser, now);
   setupTraining(app, database, requireUser, now);
   setupFamilyRenewals(app, database, requireUser, now, { environment, demoPayments });
   app.get('/micuenta.html', requireUser, (_req, res) => res.sendFile(path.join(frontend, 'micuenta.html'), { dotfiles: 'allow' }));
 
   // Lista explícita: nunca servir backend/, .env ni archivos internos.
-  for (const file of ['index.html', 'registro.html', 'login.html', 'style.css', 'web.js', 'rutinas.js', 'productos.js', 'pedidos.js', 'entrenadores.js', 'familia.js']) {
+  for (const file of ['index.html', 'registro.html', 'login.html', 'style.css']) {
     app.get(`/${file}`, (_req, res) => res.sendFile(path.join(frontend, file), { dotfiles: 'allow' }));
+  }
+  for (const file of ['web.js', 'rutinas.js', 'productos.js', 'pedidos.js', 'entrenadores.js', 'familia.js']) {
+    app.get(`/${file}`, (_req, res) => res.sendFile(path.join(frontend, 'js', file), { dotfiles: 'allow' }));
   }
   app.get('/', (_req, res) => res.sendFile(path.join(frontend, 'index.html'), { dotfiles: 'allow' }));
   app.use('/img', express.static(path.join(frontend, 'img'), { dotfiles: 'deny' }));

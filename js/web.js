@@ -232,7 +232,7 @@ async function setupAccount() {
         if (usuario.rol === 'admin') setupMembershipAdministration();
         setupRoutines(usuario);
         setupProductAdministration(usuario);
-        setupOrdersAccount();
+        setupOrdersAccount(usuario);
         setupTrainingAccount(usuario);
         setupFamilyRenewalsAccount(usuario);
     } catch { message.textContent = "No se pudo cargar tu cuenta. Intenta recargar la página."; }

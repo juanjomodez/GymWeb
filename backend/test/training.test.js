@@ -53,6 +53,34 @@ test('perfil vincula una cuenta existente sin cambiar su rol; DTO público priva
   assert.equal((await f.edit(trainer, true)).status, 200); assert.equal((await f.edit(trainer, false)).status, 409);
 });
 
+test('consulta de acceso distingue administrador, Premium y entrenador sin denegaciones esperadas', async t => {
+  const f = await fixture(t);
+  assert.equal((await f.request('/api/entrenamiento/acceso', null)).status, 401);
+  const admin = await f.request('/api/entrenamiento/acceso?userId=' + ids.a, 'c');
+  assert.equal(admin.status, 200);
+  assert.deepEqual(await admin.json(), { premium: false, entrenador: null });
+  assert.equal((await f.request('/api/admin/horarios', 'c')).status, 200);
+  assert.equal((await f.request('/api/horarios', 'c')).status, 403);
+  assert.deepEqual(await (await f.request('/api/entrenamiento/acceso')).json(), { premium: true, entrenador: null });
+  const profile = await f.profile();
+  const staff = await (await f.request('/api/entrenamiento/acceso', 'd')).json();
+  assert.equal(staff.premium, false);
+  assert.equal(staff.entrenador.nombre, profile.nombre);
+  for (const key of ['usuarioId', 'correo', 'version', 'creadaPor']) assert.equal(staff.entrenador[key], undefined);
+  await f.edit(profile, false);
+  assert.deepEqual(await (await f.request('/api/entrenamiento/acceso', 'd')).json(), { premium: false, entrenador: null });
+  f.clock.value = f.membership('a').fin;
+  assert.equal((await (await f.request('/api/entrenamiento/acceso')).json()).premium, false);
+});
+
+test('fallo al comprobar acceso devuelve 503 sin conceder acceso ni filtrar errores', async t => {
+  const f = await fixture(t);
+  f.db.findTrainerForUser = async () => { throw new Error('secreto del driver'); };
+  const response = await f.request('/api/entrenamiento/acceso', 'c');
+  assert.equal(response.status, 503);
+  assert.equal((await response.text()).includes('secreto'), false);
+});
+
 test('solo Premium vigente accede: planes, estados, fechas y membresía durante toda la cita', async t => {
   const f = await fixture(t), trainer = await f.profile(), slot = await f.slot(trainer);
   for (const plan of ['basico', 'familiar', 'premium-inventado']) { f.membership('a').planId = plan; assert.equal((await f.request('/api/horarios')).status, 403); assert.equal((await f.reserve(slot)).status, 403); }

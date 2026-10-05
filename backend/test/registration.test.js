@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { scryptSync } from 'node:crypto';
+import { readFile } from 'node:fs/promises';
 import { createApp } from '../src/app.js';
 
 async function start(t, database) {
@@ -61,4 +62,20 @@ test('sirve el registro y bloquea archivos privados; maneja JSON inválido', asy
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{',
   });
   assert.equal(response.status, 400);
+});
+
+test('los scripts referenciados por las páginas públicas y la cuenta se sirven como JavaScript', async t => {
+  const { base } = await start(t, {});
+  const scripts = new Set();
+  for (const page of ['index.html', 'login.html', 'registro.html', 'micuenta.html']) {
+    const html = await readFile(new URL(`../../${page}`, import.meta.url), 'utf8');
+    for (const [, src] of html.matchAll(/<script\b[^>]*\bsrc="([^"]+)"/g)) scripts.add(src);
+  }
+  assert.ok(scripts.has('web.js'), 'El formulario debe cargar el código de autenticación');
+  for (const script of scripts) {
+    const response = await fetch(`${base}/${script}`);
+    assert.equal(response.status, 200, script);
+    assert.match(response.headers.get('content-type'), /javascript/, script);
+    assert.equal(await response.text(), await readFile(new URL(`../../js/${script}`, import.meta.url), 'utf8'), script);
+  }
 });
