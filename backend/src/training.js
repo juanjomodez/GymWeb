@@ -69,6 +69,15 @@ export function setupTraining(app, database, requireUser, now) {
     const filter = filters(req); if (!filter) return res.status(400).json({ message: 'Filtro de entrenadores inválido.' });
     try { res.json(page(await database.listTrainers({ ...filter, disponible: true }), 'entrenadores', row => publicTrainer(row))); } catch (error) { fail(res, error); }
   });
+  app.get('/api/entrenamiento/acceso', requireUser, async (req, res) => {
+    try {
+      const [membership, profile] = await Promise.all([
+        database.findMembership(req.user.id, now()),
+        database.findTrainerForUser(req.user.id),
+      ]);
+      res.json({ premium: hasTrainingAccess(membership, now()), entrenador: profile ? publicTrainer(profile) : null });
+    } catch (error) { fail(res, error); }
+  });
   app.get('/api/admin/entrenadores', requireUser, requireAdmin, async (req, res) => {
     const filter = filters(req, true); if (!filter) return res.status(400).json({ message: 'Filtro de entrenadores inválido.' });
     try { res.json(page(await database.listTrainers(filter), 'entrenadores', row => publicTrainer(row, true))); } catch (error) { fail(res, error); }

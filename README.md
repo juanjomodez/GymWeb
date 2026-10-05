@@ -1,4 +1,5 @@
 # DocumentaciónBD
+# configuración de la base al final
 
 Nombre del proyecto: Gym Flow
 Integrantes: Juan Jose Mosquera Bermudez - Santiago Lopez Gomez - Alejandro Pantoja Obando - Jesus David Albarracin Ortega - Yeferson David Casso Ruiz
@@ -165,3 +166,103 @@ Base de datos: MongoDB, utilizada para almacenar usuarios, membresias, reservas,
 
 Comunicacion: el frontend se comunicará con el backend mediante una API REST, mientras que el backend realizara 
 las operaciones de consulta y almacenamiento en MongoDB.
+
+
+# configuración rapida ==========================================================================================
+
+# 1. Preparar el proyecto — solo la primera vez o al reinstalar dependencias
+```Powershell
+node --version
+npm.cmd --version
+```
+# 2. Después instala las dependencias:
+
+```Powershell
+npm.cmd ci
+```
+```CMD
+npm ci
+```
+
+# Para crear la configuración únicamente si todavía no existe:
+
+```CMD
+if (-not (Test-Path -LiteralPath .env)) {
+    Copy-Item -LiteralPath .env.example -Destination .env
+}
+notepad.exe .env
+```
+En ese archivo configura:
+
+MONGODB_URI=TU_URI_DE_MONGODB_ATLAS
+MONGODB_DB=GymWeb
+HOST=127.0.0.1
+PORT=3000
+
+# 3. Iniciar base datos — elige uno de estos modos
+
+cd C:..\..\..\Gym\backend --> buscar la ruta donde este ubicada
+
+```Powershell
+npm.cmd start
+```
+```CMD
+npm start
+```
+
+# 4. Comprobar la conexión y abrir la aplicación
+
+desde cualquier ubicación en CMD o Powershell
+curl.exe -i http://127.0.0.1:3000/health
+
+La respuesta correcta incluye HTTP 200 y:
+{"status":"ok","database":"connected"}
+
+# 5. Preparar un administrador — solo cuando necesites promover una cuenta
+
+Primero registra la cuenta desde la web. En otra terminal, entra en backend y ejecuta:
+
+```Powershell
+$env:NODE_ENV = 'development'
+npm.cmd run admin:prepare -- --correo "tu-correo@ejemplo.com" --confirmar
+Remove-Item Env:NODE_ENV
+```
+
+# 6. Ejecutar las pruebas locales
+
+```Powershell
+npm.cmd test
+```
+
+# 7. Diagnosticar problemas de conexión
+
+```Powershell
+npm.cmd run diagnose:db
+```
+
+# 8. Ejecutar verificaciones contra Atlas — opcional
+
+```Powershell
+npm.cmd run verify:atlas
+compureba: Registro, login, sesión, planes y solicitud inicial de membresía.
+
+npm.cmd run verify:atlas -- --with-admin
+comprueba: Lo anterior, permisos administrativos, activación y vencimiento.
+
+npm.cmd run verify:atlas -- --with-routines
+comprueba: Lo anterior, incluyendo administración y acceso a rutinas.
+
+```
+
+# 9. Si el puerto 3000 está ocupado
+Detén el backend si lo tienes activo con Ctrl+C. Si necesitas utilizar otro puerto:
+```Powershell
+$env:PORT = '3001'
+npm.cmd run start
+```
+Después de detener ese proceso, elimina el cambio de esa terminal:
+```Powershell
+Remove-Item Env:PORT
+```
+
+# fin configuración rapida ==========================================================================================
