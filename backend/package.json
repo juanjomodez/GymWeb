@@ -1,17 +1,16 @@
 {
-  "name": "gym-backend",
-  "version": "0.1.0",
+  "name": "gymflow-api",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
-  "engines": { "node": ">=22.13.0" },
   "scripts": {
     "start": "node src/server.js",
-    "start:demo": "node scripts/start-demo.js",
-    "dev": "node --watch src/server.js",
-    "test": "node --test",
-    "diagnose:db": "node scripts/diagnose-database.js",
-    "verify:atlas": "node scripts/verify-registration.js",
-    "admin:prepare": "node scripts/prepare-admin.js"
+    "dev": "node --watch src/server.js"
   },
-  "dependencies": { "express": "^5.1.0", "mongodb": "^7.0.0" }
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^5.1.0",
+    "mongoose": "^9.9.3"
+  }
 }
